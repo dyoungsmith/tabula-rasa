@@ -62,7 +62,7 @@ export default class Room extends Component {
     }
 
     const wBoard = document.getElementById('wBoard')  // whiteboard
-    // const box2 = document.getElementById('box2')
+    const box2 = document.getElementById('box2')
     const scene = document.querySelector('a-scene')
     const remote = document.getElementById('remote')
 
@@ -174,7 +174,7 @@ export default class Room extends Component {
     return (
       <div style={{ width: '100%', height: '100%' }}>
 
-        <a-scene firebase={aframeConfig}>
+        <a-scene firebase={ aframeConfig }>
 
           {/*<a-assets>
             <img id="fsPano" src="/IMG_3941.JPG" />
@@ -189,7 +189,8 @@ export default class Room extends Component {
 
           <a-sky material="color: pink"></a-sky>
           <a-plane id="wBoard"  canvas-material="width: 500; height: 500" scale="10 4 4" class="selectable" position="0 2 -4" ></a-plane>
-          {/*<a-box id="box2" class="selectable" scale="10 4 4" material="color: green; shader: flat" position="0 2 10"></a-box>*/}
+         {/* <a-entity id="wBoard" geometry="primitive: plane; width: 500; height: 500" scale="10 4 4" class="selectable" position="0 2 -4"></a-entity>*/}
+          <a-box id="box2" class="selectable" scale="10 4 4" material="color: green; shader: flat" position="0 2 10"></a-box>
 
         </a-scene>
       </div>

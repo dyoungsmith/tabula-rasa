@@ -13,7 +13,8 @@ AFRAME.registerComponent('canvas-material', {
             default: '#000000'
         }
     },
-    init: function() {
+
+    init() {
         if (!this.canvas) {
             this.canvas = document.createElement("canvas");
         }
@@ -28,7 +29,7 @@ AFRAME.registerComponent('canvas-material', {
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.getContext = function() {
-            var ctx = _this.canvas.getContext("2d");
+            const ctx = _this.canvas.getContext("2d");
             return ctx;
         }
 
@@ -39,10 +40,11 @@ AFRAME.registerComponent('canvas-material', {
         var event = new Event("loaded")
         document.dispatchEvent(event)
     },
-    update: function() {
+
+    update() {
         var _this = this;
 
-        // HACK:adding timeout because child[0] not immediately available
+        // HACK: adding timeout because child[0] not immediately available
         setTimeout(function() {
             if (_this.el.object3D.children[0]) {
                 _this.el.object3D.children[0].material = _this.material;
