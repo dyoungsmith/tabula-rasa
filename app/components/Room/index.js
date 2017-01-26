@@ -48,7 +48,7 @@ let isVR = false;
 let aframeConfig = AFRAME.utils.styleParser.stringify(config);
 
 export default class Room extends Component {
-  componentDidMount(){
+  componentDidMount() {
     let eventTimeout
 
     function eventThrottler (e, fn) {
@@ -62,7 +62,7 @@ export default class Room extends Component {
     }
 
     const wBoard = document.getElementById('wBoard')  // whiteboard
-    const box2 = document.getElementById('box2')
+    // const box2 = document.getElementById('box2')
     const scene = document.querySelector('a-scene')
     const remote = document.getElementById('remote')
 
@@ -89,7 +89,7 @@ export default class Room extends Component {
       remote.addEventListener('buttondown', function (e) {
           drawing = true;
           netLog("buttown down canvas event at e", e)
-          let proj = toScreenPosition(position, scene.camera)
+          let proj = toBoardPosition(position, scene.camera)
           currentRayPosition.x = proj.x //- this.offsetLeft;
           currentRayPosition.y = proj.y //- this.offsetTop;
       });
@@ -100,18 +100,16 @@ export default class Room extends Component {
       });
 
       //converts 3D point to 2d space
-      function toScreenPosition(obj, camera, objCasted) {
+      function toBoardPosition(obj, camera, objCasted) {
           // netLog(obj, camera)
-          // console.dir(obj)
           var vector = new THREE.Vector3();
           vector.x = obj.x
           vector.y = obj.y
           vector.z = obj.z
-          // netLog("vetor", vector)
+          // netLog("vector", vector)
           var widthHalf = 0.5*component.data.width;
           var heightHalf = 0.5*component.data.height;
-          // netLog("widthHalf", widthHalf)
-          // netLog("heightHalf", heightHalf)
+          // netLog("widthHalf", widthHalf, "heightHalf", heightHalf)
           // obj.updateMatrixWorld();
           // netLog("OBJ.MATRIXWORLD", JSON.stringify(obj.matrixWorld));
           // vector.setFromMatrixPosition(objCasted.matrixWorld);
@@ -119,7 +117,7 @@ export default class Room extends Component {
           // console.log(vector.x)
           // console.log(vector.y)
           vector.x = ( vector.x * widthHalf ) + widthHalf;
-          vector.y = - ( vector.y * heightHalf ) + heightHalf;
+          vector.y = -( vector.y * heightHalf ) + heightHalf;
 
           return {
               x: vector.x,
@@ -138,7 +136,7 @@ export default class Room extends Component {
              // netLog("scene", scene)
              // netLog("scene-camera", scene.camera)
 
-             let proj = toScreenPosition(position, scene.camera, wBoard)
+             let proj = toBoardPosition(position, scene.camera, wBoard)
              lastRayPosition.x = currentRayPosition.x;
              lastRayPosition.y = currentRayPosition.y;
 
@@ -167,36 +165,35 @@ export default class Room extends Component {
 
       wBoard.addEventListener('raycaster-intersected',
         (e) => { eventThrottler(e, raycasterEventHandler) }
-      )
-    })
-
+      );
+    });
   }
-
 
 
   render() {
     return (
-      <div style={{width: '100%', height: '100%'}}>
+      <div style={{ width: '100%', height: '100%' }}>
 
         <a-scene firebase={aframeConfig}>
-          <a-assets>
+
+          {/*<a-assets>
             <img id="fsPano" src="/IMG_3941.JPG" />
-          </a-assets>
+          </a-assets>*/}
+
           <a-entity position="-0.2 2.0 0">
             <a-entity id="remote" daydream-controller raycaster="objects: .selectable">
               <a-cone id="ray" color="cyan" position="0 0 -2" rotation="-90 0 0" radius-bottom="0.005" radius-top="0.001" height="4"></a-cone>
               <a-box id="position-guide" visible="false" position="0 0 -2"></a-box>
             </a-entity>
           </a-entity>
-          <a-sky src="#fsPano"></a-sky>
-          <a-plane id="wBoard"  canvas-material="width:500; height:500" scale="10 4 4" class="selectable" position="0 2 -4" ></a-plane>
-          <a-box id="box2" class="selectable" scale="10 4 4" material="color: green; shader: flat" position="0 2 10"></a-box>
+
+          <a-sky material="color: pink"></a-sky>
+          <a-plane id="wBoard"  canvas-material="width: 500; height: 500" scale="10 4 4" class="selectable" position="0 2 -4" ></a-plane>
+          {/*<a-box id="box2" class="selectable" scale="10 4 4" material="color: green; shader: flat" position="0 2 10"></a-box>*/}
 
         </a-scene>
       </div>
     );
   }
 }
-
-// export default Room;
 
