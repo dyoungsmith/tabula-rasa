@@ -11,6 +11,7 @@ module.exports = {
   devServer: {
     hot: true,
     port: 7000,
+    host: '0.0.0.0'
   },
   module: {
     loaders: [
