@@ -113,9 +113,20 @@ export default class Room extends Component {
           // obj.updateMatrixWorld();
           // netLog("OBJ.MATRIXWORLD", JSON.stringify(obj.matrixWorld));
           // vector.setFromMatrixPosition(objCasted.matrixWorld);
-          vector.project(camera);
+
+          var v2 = new THREE.Vector3();
+          v2.x = 0
+          v2.y = 2
+          v2.z = -4
+
+          console.log('before', vector)
+
+          vector.projectOnPlane(v2);
           // console.log(vector.x)
           // console.log(vector.y)
+
+          console.log('aftur', vector)
+
           vector.x = ( vector.x * widthHalf ) + widthHalf;
           vector.y = -( vector.y * heightHalf ) + heightHalf;
 
@@ -188,7 +199,7 @@ export default class Room extends Component {
           </a-entity>
 
           <a-sky material="color: pink"></a-sky>
-          <a-plane id="wBoard"  canvas-material="width: 500; height: 500" scale="10 4 4" class="selectable" position="0 2 -4" ></a-plane>
+          <a-plane id="wBoard" height="10" width="10" canvas-material="width: 800; height: 800" class="selectable" position="0 2 -4" ></a-plane>
          {/* <a-entity id="wBoard" geometry="primitive: plane; width: 500; height: 500" scale="10 4 4" class="selectable" position="0 2 -4"></a-entity>*/}
           <a-box id="box2" class="selectable" scale="10 4 4" material="color: green; shader: flat" position="0 2 10"></a-box>
 
