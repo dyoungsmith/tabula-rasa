@@ -11,7 +11,7 @@ module.exports = {
   devServer: {
     hot: true,
     port: 7000,
-    host: '0.0.0.0'
+    host: '0.0.0.0' // allows hosting from local IP
   },
   module: {
     loaders: [
