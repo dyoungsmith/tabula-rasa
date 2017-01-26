@@ -9,9 +9,7 @@ import Room from '../Room';
 
 export default () => (
   <Router history={ browserHistory }>
-    <Route path="/" component={ Main }>
-      {/*<IndexRedirect to="/room" />*/}
-      <Route path="/room" component={ Room } />
-    </Route>
+    <Route path="/" component={ Main } />
+    <Route path="/room" component={ Room } />
   </Router>
 );
