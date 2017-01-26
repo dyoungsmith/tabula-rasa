@@ -169,12 +169,12 @@ export default class Room extends Component {
     });
   }
 
-
   render() {
+    console.log('COMPONENTS', AFRAME.components)
     return (
       <div style={{ width: '100%', height: '100%' }}>
 
-        <a-scene firebase={ aframeConfig }>
+        <a-scene firebase={ aframeConfig } inspector="url: https://aframe.io/releases/0.3.0/aframe-inspector.min.js">
 
           {/*<a-assets>
             <img id="fsPano" src="/IMG_3941.JPG" />
