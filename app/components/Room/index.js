@@ -3,43 +3,13 @@ import 'aframe-firebase-component';
 import '../aframe/components/canvasMaterial.js';
 import config from '../../db/config.js';
 
-//////////////////////////////////////////////
-// EventEmitter - not sure if we need this with firebase now - relic from whiteboard
-//////////////////////////////////////////////
-window.EventEmitter = class EventEmitter {
-  constructor () {
-    this.subscribers = {};
-  }
-
-  on (eventName, eventListener) {
-    if (!this.subscribers[eventName]) {
-      this.subscribers[eventName] = [];
-    }
-
-    // Push the given listener function into the array
-    // located on the instance's subscribers object.
-    this.subscribers[eventName].push(eventListener);
-  }
-
-  emit (eventName, ...args) {
-    if (!this.subscribers[eventName]) {
-      return;
-    }
-
-    // For each subscriber, call it with our arguments.
-    this.subscribers[eventName].forEach(listener => listener(...args));
-  }
-};
-
-window.whiteboard = new window.EventEmitter();
-
-// Used to send logs to the server in case we don't have remote mobile console setup
-function netLog(...input){
-  // console.log("here")
-  let joinedInput = input.join(' , ')
-  // console.log(joinedInput)
-  // axios.post('/api/logs', {message: joinedInput } )
-}
+// // Used to send logs to the server in case we don't have remote mobile console setup
+// function netLog(...input){
+//   // console.log("here")
+//   let joinedInput = input.join(' , ')
+//   // console.log(joinedInput)
+//   // axios.post('/api/logs', {message: joinedInput } )
+// }
 
 let isVR = false;
 
@@ -62,8 +32,10 @@ export default class Room extends Component {
     }
 
     const wBoard = document.getElementById('wBoard')  // whiteboard
+
     const box2 = document.getElementById('box2')
     const scene = document.querySelector('a-scene')
+
     const remote = document.getElementById('remote')
 
     document.addEventListener("loaded", () => {
@@ -74,7 +46,7 @@ export default class Room extends Component {
       // const firebase = document.querySelector('a-scene').systems.firebase.firebase
       // const db = firebase.database();
 
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 2;
       ctx.lineJoin = 'bevel';
       ctx.lineCap = 'round';
 
@@ -88,81 +60,69 @@ export default class Room extends Component {
 
       remote.addEventListener('buttondown', function (e) {
           drawing = true;
-          netLog("buttown down canvas event at e", e)
-          let proj = toBoardPosition(position, scene.camera)
+          let proj = toBoardPosition(position, wBoard)
+          //offsets would be necessary for whiteboards not placed at origin
           currentRayPosition.x = proj.x //- this.offsetLeft;
           currentRayPosition.y = proj.y //- this.offsetTop;
       });
 
       remote.addEventListener('buttonup', function (e) {
-          netLog("buttown up canvas event at e", e)
           drawing = false;
       });
 
       //converts 3D point to 2d space
-      function toBoardPosition(obj, camera, objCasted) {
-          // netLog(obj, camera)
-          var vector = new THREE.Vector3();
-          vector.x = obj.x
-          vector.y = obj.y
-          vector.z = obj.z
-          // netLog("vector", vector)
-          var widthHalf = 0.5*component.data.width;
-          var heightHalf = 0.5*component.data.height;
-          // netLog("widthHalf", widthHalf, "heightHalf", heightHalf)
-          // obj.updateMatrixWorld();
-          // netLog("OBJ.MATRIXWORLD", JSON.stringify(obj.matrixWorld));
-          // vector.setFromMatrixPosition(objCasted.matrixWorld);
-          vector.project(camera);
-          // console.log(vector.x)
-          // console.log(vector.y)
-          vector.x = ( vector.x * widthHalf ) + widthHalf;
-          vector.y = -( vector.y * heightHalf ) + heightHalf;
+
+      
+      function toBoardPosition(pointPosition, wBoard) {
+          const canvasMat = wBoard.components["canvas-material"];
+          const canWidth = canvasMat.data.width;
+          const canHeight = canvasMat.data.height;
+
+          const wBoardHeight = wBoard.getAttribute('height')
+          const wBoardWidth = wBoard.getAttribute('width')
+          const x = (wBoardWidth/2 + pointPosition.x)*(canWidth/wBoardWidth)
+          const y = (wBoardHeight/2 - pointPosition.y)*(canHeight/wBoardHeight)
 
           return {
-              x: vector.x,
-              y: vector.y
+              x,
+              y
           };
       }
 
+      const draw = function (start, end, strokeColor = 'black', shouldBroadcast) {
+
+        // Draw the line between the start and end positions
+        // that is colored with the given color.
+        ctx.beginPath();
+        ctx.strokeStyle = strokeColor;
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.closePath();
+        ctx.stroke();
+
+        //change later to emit a firebase "draw" event
+        if (shouldBroadcast) {
+            // whiteboard.emit('draw', start, end, strokeColor);
+        }
+      };
+      
+
       function raycasterEventHandler (e) {
-             // netLog(e.detail)
-             // netLog("raycaster canvas event at e", JSON.stringify(e.detail.intersection.point));
-             // netLog("here before proj")
              position = e.detail.intersection.point
              if (!drawing) return;
-             // netLog("here about to proj")
-             // netLog("here about to proj-sceneCamera", wBoard.sceneEl.cameraEl)
-             // netLog("scene", scene)
-             // netLog("scene-camera", scene.camera)
+             let proj = toBoardPosition(position, wBoard)
 
-             let proj = toBoardPosition(position, scene.camera, wBoard)
              lastRayPosition.x = currentRayPosition.x;
              lastRayPosition.y = currentRayPosition.y;
 
              currentRayPosition.x = proj.x //- this.offsetLeft;
              currentRayPosition.y = proj.y //- this.offsetTop;
-             whiteboard.draw = function (start, end, strokeColor = 'black', shouldBroadcast) {
 
-               // Draw the line between the start and end positions
-               // that is colored with the given color.
-               ctx.beginPath();
-               ctx.strokeStyle = strokeColor;
-               ctx.moveTo(start.x, start.y);
-               ctx.lineTo(end.x, end.y);
-               ctx.closePath();
-               ctx.stroke();
-
-
-               if (shouldBroadcast) {
-                   whiteboard.emit('draw', start, end, strokeColor);
-               }
-             };
-
-             whiteboard.draw(lastRayPosition, currentRayPosition, 'black', true);
+             draw(lastRayPosition, currentRayPosition, 'black', true);
              component.updateTexture();
       }
 
+      //works without throttle as well
       wBoard.addEventListener('raycaster-intersected',
         (e) => { eventThrottler(e, raycasterEventHandler) }
       );
@@ -170,7 +130,7 @@ export default class Room extends Component {
   }
 
   render() {
-    console.log('COMPONENTS', AFRAME.components)
+    // console.log('COMPONENTS', AFRAME.components)
     return (
       <div style={{ width: '100%', height: '100%' }}>
 
@@ -188,7 +148,7 @@ export default class Room extends Component {
           </a-entity>
 
           <a-sky material="color: pink"></a-sky>
-          <a-plane id="wBoard"  canvas-material="width: 500; height: 500" scale="10 4 4" class="selectable" position="0 2 -4" ></a-plane>
+          <a-plane id="wBoard"  canvas-material="width: 512; height: 512" height="10" width="0" class="selectable" position="0 0 -8" ></a-plane>
          {/* <a-entity id="wBoard" geometry="primitive: plane; width: 500; height: 500" scale="10 4 4" class="selectable" position="0 2 -4"></a-entity>*/}
           <a-box id="box2" class="selectable" scale="10 4 4" material="color: green; shader: flat" position="0 2 10"></a-box>
 
