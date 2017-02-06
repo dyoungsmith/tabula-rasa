@@ -148,7 +148,7 @@ export default class Room extends Component {
           </a-entity>
 
           <a-sky material="color: pink"></a-sky>
-          <a-plane id="wBoard"  canvas-material="width: 512; height: 512" height="10" width="0" class="selectable" position="0 0 -8" ></a-plane>
+          <a-plane id="wBoard"  canvas-material="width: 512; height: 512" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
          {/* <a-entity id="wBoard" geometry="primitive: plane; width: 500; height: 500" scale="10 4 4" class="selectable" position="0 2 -4"></a-entity>*/}
           <a-box id="box2" class="selectable" scale="10 4 4" material="color: green; shader: flat" position="0 2 10"></a-box>
 
