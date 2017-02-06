@@ -2,17 +2,19 @@ AFRAME.registerComponent('canvas-material', {
     schema: {
         width: {
             type: 'int',
-            default: 500
+            default: 512
         },
         height: {
             type: 'int',
-            default: 500
+            default: 512
         },
         color: {
             type: 'color',
             default: '#000000'
         }
     },
+
+
 
     init() {
         if (!this.canvas) {
@@ -24,6 +26,8 @@ AFRAME.registerComponent('canvas-material', {
         var _this = this;
         this.canvas.width = this.data.width;
         this.canvas.height = this.data.height;
+
+
         const ctx = this.canvas.getContext("2d");
         ctx.fillStyle = "white";
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
