@@ -32,8 +32,9 @@ export default class Room extends Component {
     }
 
     const wBoard = document.getElementById('wBoard')  // whiteboard
+    const undoButton = document.getElementById('undoButton')
 
-    const box2 = document.getElementById('box2')
+
     const scene = document.querySelector('a-scene')
 
     const remote = document.getElementById('remote')
@@ -58,8 +59,17 @@ export default class Room extends Component {
 
       let position;
 
+      let history = []
+      let currentStroke = []
+
+
       remote.addEventListener('buttondown', function (e) {
-          drawing = true;
+          drawing = true
+
+          const intersectedItems = remote.components.raycaster.intersectedEls
+          if (intersectedItems.some(item=>item.id==='undoButton')) undo()
+
+
           let proj = toBoardPosition(position, wBoard)
           //offsets would be necessary for whiteboards not placed at origin
           currentRayPosition.x = proj.x //- this.offsetLeft;
@@ -67,7 +77,12 @@ export default class Room extends Component {
       });
 
       remote.addEventListener('buttonup', function (e) {
-          drawing = false;
+
+          history.push(currentStroke)
+          console.log('stroke drawn: ',currentStroke)
+          currentStroke = []
+
+          drawing = false
       });
 
       //converts 3D point to 2d space
@@ -86,18 +101,20 @@ export default class Room extends Component {
           return {
               x,
               y
-          };
+          }
       }
 
-      const draw = function (start, end, strokeColor = 'black', shouldBroadcast) {
+      const draw = function (start, end, strokeColor = 'black', shouldBroadcast=true, shouldRecord=true) {
+
+        console.log('drawing? ', shouldRecord, start, end)
+        if (shouldRecord) currentStroke.push({start, end})
 
         // Draw the line between the start and end positions
         // that is colored with the given color.
-        ctx.beginPath();
+        ctx.beginPath()
         ctx.strokeStyle = strokeColor;
         ctx.moveTo(start.x, start.y);
         ctx.lineTo(end.x, end.y);
-        ctx.closePath();
         ctx.stroke();
 
         //change later to emit a firebase "draw" event
@@ -105,9 +122,19 @@ export default class Room extends Component {
             // whiteboard.emit('draw', start, end, strokeColor);
         }
       };
+
+      const undo = function(){
+        // console.log('HISTORY BEFORE: ', history)
+        if (!history.length) return
+        const lastStroke = history.pop()
+        console.log('to undo: ', lastStroke)
+        lastStroke.forEach(subStroke => draw(subStroke.start, subStroke.end, 'orange', true, false))
+        // console.log('HISTORY AFTER: ', history)
+      }
       
 
       function raycasterEventHandler (e) {
+
              position = e.detail.intersection.point
              if (!drawing) return;
              let proj = toBoardPosition(position, wBoard)
@@ -126,6 +153,13 @@ export default class Room extends Component {
       wBoard.addEventListener('raycaster-intersected',
         (e) => { eventThrottler(e, raycasterEventHandler) }
       );
+
+      //for simulating click without remote
+      document.addEventListener('keydown', (e)=> remote.emit('buttondown'))
+      document.addEventListener('keyup', (e)=> remote.emit('buttonup'))
+      // undoButton.addEventListener('raycaster-intersected', 
+      //   (e) => )
+
     });
   }
 
@@ -148,9 +182,8 @@ export default class Room extends Component {
           </a-entity>
 
           <a-sky material="color: pink"></a-sky>
-          <a-plane id="wBoard"  canvas-material="width: 512; height: 512" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
-         {/* <a-entity id="wBoard" geometry="primitive: plane; width: 500; height: 500" scale="10 4 4" class="selectable" position="0 2 -4"></a-entity>*/}
-          <a-box id="box2" class="selectable" scale="10 4 4" material="color: green; shader: flat" position="0 2 10"></a-box>
+          <a-plane id="wBoard" canvas-material="width: 512; height: 512" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
+         <a-box id="undoButton" position="0 4 -3" color="orange" class="selectable"></a-box>
 
         </a-scene>
       </div>
