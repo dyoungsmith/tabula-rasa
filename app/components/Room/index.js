@@ -17,31 +17,28 @@ let isVR = false;
 // Copy the config.js object from the slack channel
 let aframeConfig = AFRAME.utils.styleParser.stringify(config);
 
+const drawColor = {
+    index:0, 
+    color:'black'
+  }
+
 export default class Room extends Component {
   componentDidMount() {
-    let eventTimeout
-
-    function eventThrottler (e, fn) {
-
-      if (!eventTimeout) {
-        eventTimeout = setTimeout(function(){
-          eventTimeout = null
-          fn(e)
-        }, 2)
-      }
-    }
-
-    const wBoard = document.getElementById('wBoard')  // whiteboard
-    const undoButton = document.getElementById('undoButton')
-
-
-    const scene = document.querySelector('a-scene')
-
-    const remote = document.getElementById('remote')
-
     document.addEventListener("loaded", () => {
+
+      const possibleColors = ['black','red','orange','yellow','green','blue','indigo','violet']
+
+      const wBoard = document.getElementById('wBoard')  // whiteboard
+      const undoButton = document.getElementById('undoButton')
+      const colorBox = document.getElementById('colorBox')
+      
       const component = document.getElementById("wBoard").components["canvas-material"];
       const ctx = component.getContext("2d");
+
+      const scene = document.querySelector('a-scene')
+      const remote = document.getElementById('remote')
+      const cursor = document.querySelector('a-cursor')
+
 
       //The firebase object
       // const firebase = document.querySelector('a-scene').systems.firebase.firebase
@@ -62,14 +59,16 @@ export default class Room extends Component {
       let history = []
       let currentStroke = []
 
+      function intersectsWithRaycaster(entityId){
+        const intersectedEls = remote.components.raycaster.intersectedEls
+        return intersectedEls.some(item=>item.id===entityId)
+      }
 
       remote.addEventListener('buttondown', function (e) {
+
+          if (intersectsWithRaycaster('undoButton')) return undo()
+          
           drawing = true
-
-          const intersectedItems = remote.components.raycaster.intersectedEls
-          if (intersectedItems.some(item=>item.id==='undoButton')) undo()
-
-
           let proj = toBoardPosition(position, wBoard)
           //offsets would be necessary for whiteboards not placed at origin
           currentRayPosition.x = proj.x //- this.offsetLeft;
@@ -78,9 +77,10 @@ export default class Room extends Component {
 
       remote.addEventListener('buttonup', function (e) {
 
-          history.push(currentStroke)
-          console.log('stroke drawn: ',currentStroke)
-          currentStroke = []
+          if (currentStroke.length){
+            history.push(currentStroke)
+            currentStroke = []
+          }
 
           drawing = false
       });
@@ -104,10 +104,17 @@ export default class Room extends Component {
           }
       }
 
-      const draw = function (start, end, strokeColor = 'black', shouldBroadcast=true, shouldRecord=true) {
+      const draw = function (start, end, strokeColor = drawColor.color, shouldBroadcast=true, shouldRecord=true) {
 
-        console.log('drawing? ', shouldRecord, start, end)
-        if (shouldRecord) currentStroke.push({start, end})
+        if (shouldRecord) {
+          //deep copy of subStroke as to not close over and overwrite
+          const subStroke = {
+            start:Object.assign({}, start), 
+            end:Object.assign({},end),
+            strokeColor
+          }
+          currentStroke.push(subStroke)
+        }
 
         // Draw the line between the start and end positions
         // that is colored with the given color.
@@ -121,15 +128,17 @@ export default class Room extends Component {
         if (shouldBroadcast) {
             // whiteboard.emit('draw', start, end, strokeColor);
         }
+        component.updateTexture()
       };
 
       const undo = function(){
-        // console.log('HISTORY BEFORE: ', history)
         if (!history.length) return
-        const lastStroke = history.pop()
-        console.log('to undo: ', lastStroke)
-        lastStroke.forEach(subStroke => draw(subStroke.start, subStroke.end, 'orange', true, false))
-        // console.log('HISTORY AFTER: ', history)
+        history.pop()
+        component.clearContext()
+        history.forEach(stroke => 
+          stroke.forEach(subStroke => 
+            draw(subStroke.start, subStroke.end, subStroke.strokeColor, true, false)))
+
       }
       
 
@@ -145,26 +154,53 @@ export default class Room extends Component {
              currentRayPosition.x = proj.x //- this.offsetLeft;
              currentRayPosition.y = proj.y //- this.offsetTop;
 
-             draw(lastRayPosition, currentRayPosition, 'black', true);
-             component.updateTexture();
+             draw(lastRayPosition, currentRayPosition, drawColor.color, true);
+             
       }
+
+      let eventTimeout
+
+      function eventThrottler (e, fn) {
+
+        if (!eventTimeout) {
+          eventTimeout = setTimeout(function(){
+            eventTimeout = null
+            fn(e)
+          }, 2)
+        }
+      }
+
+      //change the drawColor by entering box with gaze
+      colorBox.addEventListener('mouseenter', ()=>{
+        drawColor.index++
+        if (drawColor.index >= possibleColors.length) drawColor.index = 0
+        drawColor.color = possibleColors[drawColor.index]
+        colorBox.setAttribute('color', drawColor.color)
+      })
+
+      cursor.addEventListener('raycaster-intersection',
+        e => {
+          console.log('gaze intersect', e)
+          e.stopPropagation()
+        }
+      )
 
       //works without throttle as well
       wBoard.addEventListener('raycaster-intersected',
-        (e) => { eventThrottler(e, raycasterEventHandler) }
-      );
+        e => { 
+          // console.log('!!!', e)
+          eventThrottler(e, raycasterEventHandler)
+        }
+      )
 
       //for simulating click without remote
       document.addEventListener('keydown', (e)=> remote.emit('buttondown'))
       document.addEventListener('keyup', (e)=> remote.emit('buttonup'))
-      // undoButton.addEventListener('raycaster-intersected', 
-      //   (e) => )
 
     });
   }
 
   render() {
-    // console.log('COMPONENTS', AFRAME.components)
     return (
       <div style={{ width: '100%', height: '100%' }}>
 
@@ -181,9 +217,14 @@ export default class Room extends Component {
             </a-entity>
           </a-entity>
 
+          <a-camera>
+            <a-cursor></a-cursor>
+          </a-camera>
+
           <a-sky material="color: pink"></a-sky>
           <a-plane id="wBoard" canvas-material="width: 512; height: 512" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
          <a-box id="undoButton" position="0 4 -3" color="orange" class="selectable"></a-box>
+         <a-box id="colorBox" position="-4 4 -3" color={drawColor.color} class="selectable"></a-box>
 
         </a-scene>
       </div>
