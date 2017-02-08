@@ -31,6 +31,7 @@ export default class Room extends Component {
       const wBoard = document.getElementById('wBoard')  // whiteboard
       const undoButton = document.getElementById('undoButton')
       const colorBox = document.getElementById('colorBox')
+      const ray = document.getElementById('ray')
       
       const component = document.getElementById("wBoard").components["canvas-material"];
       const ctx = component.getContext("2d");
@@ -176,6 +177,7 @@ export default class Room extends Component {
         if (drawColor.index >= possibleColors.length) drawColor.index = 0
         drawColor.color = possibleColors[drawColor.index]
         colorBox.setAttribute('color', drawColor.color)
+        ray.setAttribute('color', drawColor.color)
       })
 
       cursor.addEventListener('raycaster-intersection',
@@ -212,7 +214,7 @@ export default class Room extends Component {
 
           <a-entity position="-0.2 2.0 0">
             <a-entity id="remote" daydream-controller raycaster="objects: .selectable">
-              <a-cone id="ray" color="cyan" position="0 0 -2" rotation="-90 0 0" radius-bottom="0.005" radius-top="0.001" height="4"></a-cone>
+              <a-cone id="ray" color={drawColor.color} position="0 0 -2" rotation="-90 0 0" radius-bottom="0.005" radius-top="0.001" height="4"></a-cone>
               <a-box id="position-guide" visible="false" position="0 0 -2"></a-box>
             </a-entity>
           </a-entity>
