@@ -87,12 +87,14 @@ export default class Room extends Component {
 
             // update fb db
             currentStroke.forEach((substroke, i) => {
-              db.ref(`room1/${newOuterIdx}-${i}`).set({
-                startX: substroke.start.x,
-                startY: substroke.start.y,
-                endX: substroke.end.x, 
-                endY: substroke.end.y,
-                strokeColor: substroke.strokeColor
+              db.ref(`room1/${newOuterIdx}`).set({
+                // i: {
+                  startX: substroke.start.x,
+                  startY: substroke.start.y,
+                  endX: substroke.end.x, 
+                  endY: substroke.end.y,
+                  strokeColor: substroke.strokeColor
+                // }
               });
             });
             currentStroke = [];
@@ -102,12 +104,14 @@ export default class Room extends Component {
       });
 
       /* db format:
-        'i-j': {  // key by 'outer-inner' history array idx
-          startX: 1,
-          startY: 4,
-          endX: 6,
-          endY: 9,
-          strokeColor: red
+        'i': {  // key by 'outerIdx' from history array
+          j: {
+            startX: 1,
+            startY: 4,
+            endX: 6,
+            endY: 9,
+            strokeColor: red
+          }
         }
       */
 
@@ -179,17 +183,23 @@ export default class Room extends Component {
         if (!snapshot.val()) return;
         const strokes = snapshot.val();
 
+        Object.keys(strokes).forEach(outerIdx => {
+          // Object.keys(strokes[outerIdx]).forEach(innerIdx => {
+            // const currSubstroke = strokes[outerIdx][innerIdx];
+            const currSubstroke = strokes[outerIdx];
+            const start = {
+              x: currSubstroke.startX,
+              y: currSubstroke.startY
+            };
+            const end = {
+              x: currSubstroke.endX,
+              y: currSubstroke.endY
+            };
+            draw(start, end, currSubstroke.strokeColor);
+          // })
+        })
+
         Object.keys(strokes).forEach(substroke => {
-          const currSubstroke = strokes[substroke];
-          const start = {
-            x: currSubstroke.startX,
-            y: currSubstroke.startY
-          };
-          const end = {
-            x: currSubstroke.endX,
-            y: currSubstroke.endY
-          };
-          draw(start, end, currSubstroke.strokeColor);
         });
       });
 
