@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
 import 'aframe-firebase-component';
 import '../aframe/components/canvasMaterial.js';
-import config from '../../db/config.js';
+// import config from '../../db/config.js';
+import db from '../../db';
 
 // // Used to send logs to the server in case we don't have remote mobile console setup
 // function netLog(...input){
@@ -13,14 +14,13 @@ import config from '../../db/config.js';
 
 let isVR = false;
 
-
 // Copy the config.js object from the slack channel
-let aframeConfig = AFRAME.utils.styleParser.stringify(config);
+// let aframeConfig = AFRAME.utils.styleParser.stringify(config);
 
 const drawColor = {
     index:0, 
     color:'black'
-  }
+}
 
 export default class Room extends Component {
   componentDidMount() {
@@ -49,7 +49,6 @@ export default class Room extends Component {
       ctx.lineJoin = 'bevel';
       ctx.lineCap = 'round';
 
-
       const currentRayPosition = { x: 0, y: 0 };
       const lastRayPosition = { x: 0, y: 0 };
 
@@ -57,47 +56,72 @@ export default class Room extends Component {
 
       let position;
 
-      let history = []
-      let currentStroke = []
+      let history = [];
+      let currentStroke = [];
 
       function intersectsWithRaycaster(entityId){
-        const intersectedEls = remote.components.raycaster.intersectedEls
-        return intersectedEls.some(item=>item.id===entityId)
+        const intersectedEls = remote.components.raycaster.intersectedEls;
+        return intersectedEls.some(item => item.id === entityId);
       }
 
-      const colorChange = ()=>{
-        drawColor.index++
-        if (drawColor.index >= possibleColors.length) drawColor.index = 0
-        drawColor.color = possibleColors[drawColor.index]
-        colorBox.setAttribute('color', drawColor.color)
-        ray.setAttribute('color', drawColor.color)
+      const colorChange = () => {
+        drawColor.index++;
+        if (drawColor.index >= possibleColors.length) drawColor.index = 0;
+        drawColor.color = possibleColors[drawColor.index];
+        colorBox.setAttribute('color', drawColor.color);
+        ray.setAttribute('color', drawColor.color);
       }
 
       remote.addEventListener('buttondown', function (e) {
+          if (intersectsWithRaycaster('colorBox')) return colorChange();
+          if (intersectsWithRaycaster('undoButton')) return undo();
 
-          if (intersectsWithRaycaster('colorBox')) return colorChange()
-          if (intersectsWithRaycaster('undoButton')) return undo()
-          
-          drawing = true
-          let proj = toBoardPosition(position, wBoard)
+          drawing = true;
+          let proj = toBoardPosition(position, wBoard);
+
           //offsets would be necessary for whiteboards not placed at origin
           currentRayPosition.x = proj.x //- this.offsetLeft;
           currentRayPosition.y = proj.y //- this.offsetTop;
       });
 
       remote.addEventListener('buttonup', function (e) {
+          if (currentStroke.length) {
+            history.push(currentStroke);
 
-          if (currentStroke.length){
-            history.push(currentStroke)
-            currentStroke = []
+            // update fb db
+            history.forEach((stroke, i) => {
+              stroke.forEach((substroke, j) => {
+                db.ref(`room1/${substroke.strokeColor}/${i}-${j}`).set({
+                  start: substroke.start,
+                  end: substroke.end
+                });
+              });
+            });
+            currentStroke = [];
           }
 
-          drawing = false
+          drawing = false;
       });
 
-      //converts 3D point to 2d space
+      /* db format:
+        'green': {
+          'i-j': {  // key by outer-inner history array idx
+            start: {
+              x: 3,
+              y: 5
+            },
+            end; {
+              x: 4,
+              y: 9
+            }
+          }
+        },
+        'black': {
+          ...
+        }
+      */
 
-      
+      //converts 3D point (aframe) to 2d space (wb)
       function toBoardPosition(pointPosition, wBoard) {
           const canvasMat = wBoard.components["canvas-material"];
           const canWidth = canvasMat.data.width;
@@ -108,10 +132,7 @@ export default class Room extends Component {
           const x = (wBoardWidth/2 + pointPosition.x)*(canWidth/wBoardWidth)
           const y = (wBoardHeight/2 - pointPosition.y)*(canHeight/wBoardHeight)
 
-          return {
-              x,
-              y
-          }
+          return { x, y }
       }
 
       const draw = function (start, end, strokeColor = drawColor.color, shouldBroadcast=true, shouldRecord=true) {
@@ -119,11 +140,11 @@ export default class Room extends Component {
         if (shouldRecord) {
           //deep copy of subStroke as to not close over and overwrite
           const subStroke = {
-            start:Object.assign({}, start), 
-            end:Object.assign({},end),
+            start: Object.assign({}, start),  // ie: {x: 3, y: 4}
+            end: Object.assign({}, end),
             strokeColor
           }
-          currentStroke.push(subStroke)
+          currentStroke.push(subStroke);
         }
 
         // Draw the line between the start and end positions
@@ -217,7 +238,7 @@ export default class Room extends Component {
     return (
       <div style={{ width: '100%', height: '100%' }}>
 
-        <a-scene firebase={ aframeConfig } inspector="url: https://aframe.io/releases/0.3.0/aframe-inspector.min.js">
+        <a-scene inspector="url: https://aframe.io/releases/0.3.0/aframe-inspector.min.js">
 
           {/*<a-assets>
             <img id="fsPano" src="/IMG_3941.JPG" />
