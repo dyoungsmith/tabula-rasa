@@ -87,14 +87,12 @@ export default class Room extends Component {
 
             // update fb db
             currentStroke.forEach((substroke, i) => {
-              db.ref(`room1/${newOuterIdx}`).set({
-                // i: {
-                  startX: substroke.start.x,
-                  startY: substroke.start.y,
-                  endX: substroke.end.x, 
-                  endY: substroke.end.y,
-                  strokeColor: substroke.strokeColor
-                // }
+              db.ref(`room1/${newOuterIdx}/${i}`).set({
+                startX: substroke.start.x,
+                startY: substroke.start.y,
+                endX: substroke.end.x, 
+                endY: substroke.end.y,
+                strokeColor: substroke.strokeColor
               });
             });
             currentStroke = [];
@@ -153,6 +151,7 @@ export default class Room extends Component {
 
       const undo = function() {
         if (!history.length) return;
+        const idxToRemove = history.length - 1;
         history.pop();
         component.clearContext();
         history.forEach(stroke =>
@@ -161,6 +160,7 @@ export default class Room extends Component {
           )
         )
         // UPDATE FB FROM HERE!!!
+        db.ref(`room1/${idxToRemove}`).set(null);
       }
 
       function raycasterEventHandler (e) {
@@ -182,11 +182,11 @@ export default class Room extends Component {
       db.ref(`room1`).on('value', snapshot => {
         if (!snapshot.val()) return;
         const strokes = snapshot.val();
+        component.clearContext();
 
         Object.keys(strokes).forEach(outerIdx => {
-          // Object.keys(strokes[outerIdx]).forEach(innerIdx => {
-            // const currSubstroke = strokes[outerIdx][innerIdx];
-            const currSubstroke = strokes[outerIdx];
+          Object.keys(strokes[outerIdx]).forEach(innerIdx => {
+            const currSubstroke = strokes[outerIdx][innerIdx];
             const start = {
               x: currSubstroke.startX,
               y: currSubstroke.startY
@@ -196,7 +196,7 @@ export default class Room extends Component {
               y: currSubstroke.endY
             };
             draw(start, end, currSubstroke.strokeColor);
-          // })
+          })
         })
 
         Object.keys(strokes).forEach(substroke => {
