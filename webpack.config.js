@@ -1,4 +1,5 @@
 var webpack = require('webpack');
+var path = require('path');
 
 module.exports = {
   entry: './app/index.js',
@@ -13,6 +14,7 @@ module.exports = {
     port: 7000,
     host: '0.0.0.0' // allows hosting from local IP
   },
+  contentBase: __dirname + "/public/",
   module: {
     loaders: [
       {

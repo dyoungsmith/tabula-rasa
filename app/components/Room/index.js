@@ -18,7 +18,7 @@ let isVR = false;
 let aframeConfig = AFRAME.utils.styleParser.stringify(config);
 
 const drawColor = {
-    index:0, 
+    index:0,
     color:'black'
   }
 
@@ -32,9 +32,10 @@ export default class Room extends Component {
       const undoButton = document.getElementById('undoButton')
       const colorBox = document.getElementById('colorBox')
       const ray = document.getElementById('ray')
-      
+
       const component = document.getElementById("wBoard").components["canvas-material"];
       const ctx = component.getContext("2d");
+      const marker = document.querySelector('#marker')
 
       const scene = document.querySelector('a-scene')
       const remote = document.getElementById('remote')
@@ -77,7 +78,7 @@ export default class Room extends Component {
 
           if (intersectsWithRaycaster('colorBox')) return colorChange()
           if (intersectsWithRaycaster('undoButton')) return undo()
-          
+
           drawing = true
           let proj = toBoardPosition(position, wBoard)
           //offsets would be necessary for whiteboards not placed at origin
@@ -97,7 +98,7 @@ export default class Room extends Component {
 
       //converts 3D point to 2d space
 
-      
+
       function toBoardPosition(pointPosition, wBoard) {
           const canvasMat = wBoard.components["canvas-material"];
           const canWidth = canvasMat.data.width;
@@ -119,7 +120,7 @@ export default class Room extends Component {
         if (shouldRecord) {
           //deep copy of subStroke as to not close over and overwrite
           const subStroke = {
-            start:Object.assign({}, start), 
+            start:Object.assign({}, start),
             end:Object.assign({},end),
             strokeColor
           }
@@ -145,16 +146,17 @@ export default class Room extends Component {
         if (!history.length) return
         history.pop()
         component.clearContext()
-        history.forEach(stroke => 
-          stroke.forEach(subStroke => 
+        history.forEach(stroke =>
+          stroke.forEach(subStroke =>
             draw(subStroke.start, subStroke.end, subStroke.strokeColor, true, false)))
 
       }
-      
+
 
       function raycasterEventHandler (e) {
               //for raycaster-intersected, access intersection.point
              position = e.detail.intersections[0].point
+             marker.setAttribute('position', position)
              if (!drawing) return;
              let proj = toBoardPosition(position, wBoard)
 
@@ -165,7 +167,7 @@ export default class Room extends Component {
              currentRayPosition.y = proj.y //- this.offsetTop;
 
              draw(lastRayPosition, currentRayPosition, drawColor.color, true);
-             
+
       }
 
       let eventTimeout
@@ -189,18 +191,18 @@ export default class Room extends Component {
         ray.setAttribute('color', drawColor.color)
       })
 
-      
+
 
 
       //before listener was on whiteboard, was triggered by gaze
       // wBoard.addEventListener('raycaster-intersected',
-      //   e => { 
+      //   e => {
       //     console.log('!!!', e.detail.raycaster)
       //     eventThrottler(e, raycasterEventHandler)
       //   }
       // )
       remote.addEventListener('raycaster-intersection',
-        e => { 
+        e => {
           eventThrottler(e, raycasterEventHandler)
         }
       )
@@ -219,9 +221,11 @@ export default class Room extends Component {
 
         <a-scene firebase={ aframeConfig } inspector="url: https://aframe.io/releases/0.3.0/aframe-inspector.min.js">
 
-          {/*<a-assets>
-            <img id="fsPano" src="/IMG_3941.JPG" />
-          </a-assets>*/}
+         <a-assets>
+            <a-asset-item id="marker-obj" src="Marker_.obj"></a-asset-item>
+            <a-asset-item id="marker-mtl" src="Marker_.mtl"></a-asset-item>
+
+          </a-assets>
 
           <a-camera>
             <a-cursor></a-cursor>
@@ -234,6 +238,9 @@ export default class Room extends Component {
             </a-entity>
           </a-entity>
 
+          <a-entity position="0 0 0.5">
+            <a-entity id="marker" obj-model="obj: #marker-obj; mtl: #marker-mtl" rotation="0 270 0" scale=".25 .25 .25"></a-entity>
+          </a-entity>
           <a-sky material="color: pink"></a-sky>
           <a-plane id="wBoard" canvas-material="width: 512; height: 512;color: white" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
          <a-box id="undoButton" position="0 4 -3" color="orange" class="selectable"></a-box>
