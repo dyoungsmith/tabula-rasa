@@ -10,7 +10,7 @@ AFRAME.registerComponent('canvas-material', {
         },
         color: {
             type: 'color',
-            default: '#000000'
+            default: 'yellow'
         }
     },
 
@@ -29,7 +29,7 @@ AFRAME.registerComponent('canvas-material', {
 
 
         const ctx = this.canvas.getContext("2d");
-        ctx.fillStyle = "white";
+        ctx.fillStyle = this.data.color;
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         this.getContext = function() {
@@ -38,6 +38,11 @@ AFRAME.registerComponent('canvas-material', {
         }
 
         this.updateTexture = function() {
+            this.texture.needsUpdate = true;
+        }
+
+        this.clearContext = function() {
+            ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
             this.texture.needsUpdate = true;
         }
 

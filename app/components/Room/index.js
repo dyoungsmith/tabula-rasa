@@ -17,30 +17,29 @@ let isVR = false;
 // Copy the config.js object from the slack channel
 let aframeConfig = AFRAME.utils.styleParser.stringify(config);
 
+const drawColor = {
+    index:0, 
+    color:'black'
+  }
+
 export default class Room extends Component {
   componentDidMount() {
-    let eventTimeout
-
-    function eventThrottler (e, fn) {
-
-      if (!eventTimeout) {
-        eventTimeout = setTimeout(function(){
-          eventTimeout = null
-          fn(e)
-        }, 2)
-      }
-    }
-
-    const wBoard = document.getElementById('wBoard')  // whiteboard
-
-    const box2 = document.getElementById('box2')
-    const scene = document.querySelector('a-scene')
-
-    const remote = document.getElementById('remote')
-
     document.addEventListener("loaded", () => {
+
+      const possibleColors = ['black','red','orange','yellow','green','blue','indigo','violet']
+
+      const wBoard = document.getElementById('wBoard')  // whiteboard
+      const undoButton = document.getElementById('undoButton')
+      const colorBox = document.getElementById('colorBox')
+      const ray = document.getElementById('ray')
+      
       const component = document.getElementById("wBoard").components["canvas-material"];
       const ctx = component.getContext("2d");
+
+      const scene = document.querySelector('a-scene')
+      const remote = document.getElementById('remote')
+      const cursor = document.querySelector('a-cursor')
+
 
       //The firebase object
       // const firebase = document.querySelector('a-scene').systems.firebase.firebase
@@ -58,8 +57,28 @@ export default class Room extends Component {
 
       let position;
 
+      let history = []
+      let currentStroke = []
+
+      function intersectsWithRaycaster(entityId){
+        const intersectedEls = remote.components.raycaster.intersectedEls
+        return intersectedEls.some(item=>item.id===entityId)
+      }
+
+      const colorChange = ()=>{
+        drawColor.index++
+        if (drawColor.index >= possibleColors.length) drawColor.index = 0
+        drawColor.color = possibleColors[drawColor.index]
+        colorBox.setAttribute('color', drawColor.color)
+        ray.setAttribute('color', drawColor.color)
+      }
+
       remote.addEventListener('buttondown', function (e) {
-          drawing = true;
+
+          if (intersectsWithRaycaster('colorBox')) return colorChange()
+          if (intersectsWithRaycaster('undoButton')) return undo()
+          
+          drawing = true
           let proj = toBoardPosition(position, wBoard)
           //offsets would be necessary for whiteboards not placed at origin
           currentRayPosition.x = proj.x //- this.offsetLeft;
@@ -67,7 +86,13 @@ export default class Room extends Component {
       });
 
       remote.addEventListener('buttonup', function (e) {
-          drawing = false;
+
+          if (currentStroke.length){
+            history.push(currentStroke)
+            currentStroke = []
+          }
+
+          drawing = false
       });
 
       //converts 3D point to 2d space
@@ -86,29 +111,50 @@ export default class Room extends Component {
           return {
               x,
               y
-          };
+          }
       }
 
-      const draw = function (start, end, strokeColor = 'black', shouldBroadcast) {
+      const draw = function (start, end, strokeColor = drawColor.color, shouldBroadcast=true, shouldRecord=true) {
+
+        if (shouldRecord) {
+          //deep copy of subStroke as to not close over and overwrite
+          const subStroke = {
+            start:Object.assign({}, start), 
+            end:Object.assign({},end),
+            strokeColor
+          }
+          currentStroke.push(subStroke)
+        }
 
         // Draw the line between the start and end positions
         // that is colored with the given color.
-        ctx.beginPath();
+        ctx.beginPath()
         ctx.strokeStyle = strokeColor;
         ctx.moveTo(start.x, start.y);
         ctx.lineTo(end.x, end.y);
-        ctx.closePath();
         ctx.stroke();
 
         //change later to emit a firebase "draw" event
         if (shouldBroadcast) {
             // whiteboard.emit('draw', start, end, strokeColor);
         }
+        component.updateTexture()
       };
+
+      const undo = function(){
+        if (!history.length) return
+        history.pop()
+        component.clearContext()
+        history.forEach(stroke => 
+          stroke.forEach(subStroke => 
+            draw(subStroke.start, subStroke.end, subStroke.strokeColor, true, false)))
+
+      }
       
 
       function raycasterEventHandler (e) {
-             position = e.detail.intersection.point
+              //for raycaster-intersected, access intersection.point
+             position = e.detail.intersections[0].point
              if (!drawing) return;
              let proj = toBoardPosition(position, wBoard)
 
@@ -118,19 +164,56 @@ export default class Room extends Component {
              currentRayPosition.x = proj.x //- this.offsetLeft;
              currentRayPosition.y = proj.y //- this.offsetTop;
 
-             draw(lastRayPosition, currentRayPosition, 'black', true);
-             component.updateTexture();
+             draw(lastRayPosition, currentRayPosition, drawColor.color, true);
+             
       }
 
-      //works without throttle as well
-      wBoard.addEventListener('raycaster-intersected',
-        (e) => { eventThrottler(e, raycasterEventHandler) }
-      );
+      let eventTimeout
+
+      function eventThrottler (e, fn) {
+
+        if (!eventTimeout) {
+          eventTimeout = setTimeout(function(){
+            eventTimeout = null
+            fn(e)
+          }, 2)
+        }
+      }
+
+      //change the drawColor by entering box with gaze
+      colorBox.addEventListener('mouseenter', ()=>{
+        drawColor.index++
+        if (drawColor.index >= possibleColors.length) drawColor.index = 0
+        drawColor.color = possibleColors[drawColor.index]
+        colorBox.setAttribute('color', drawColor.color)
+        ray.setAttribute('color', drawColor.color)
+      })
+
+      
+
+
+      //before listener was on whiteboard, was triggered by gaze
+      // wBoard.addEventListener('raycaster-intersected',
+      //   e => { 
+      //     console.log('!!!', e.detail.raycaster)
+      //     eventThrottler(e, raycasterEventHandler)
+      //   }
+      // )
+      remote.addEventListener('raycaster-intersection',
+        e => { 
+          eventThrottler(e, raycasterEventHandler)
+        }
+      )
+
+
+      //for simulating click without remote
+      document.addEventListener('keydown', (e)=> remote.emit('buttondown'))
+      document.addEventListener('keyup', (e)=> remote.emit('buttonup'))
+
     });
   }
 
   render() {
-    // console.log('COMPONENTS', AFRAME.components)
     return (
       <div style={{ width: '100%', height: '100%' }}>
 
@@ -140,17 +223,21 @@ export default class Room extends Component {
             <img id="fsPano" src="/IMG_3941.JPG" />
           </a-assets>*/}
 
+          <a-camera>
+            <a-cursor></a-cursor>
+          </a-camera>
+
           <a-entity position="-0.2 2.0 0">
             <a-entity id="remote" daydream-controller raycaster="objects: .selectable">
-              <a-cone id="ray" color="cyan" position="0 0 -2" rotation="-90 0 0" radius-bottom="0.005" radius-top="0.001" height="4"></a-cone>
+              <a-cone id="ray" color={drawColor.color} position="0 0 -2" rotation="-90 0 0" radius-bottom="0.005" radius-top="0.001" height="4"></a-cone>
               <a-box id="position-guide" visible="false" position="0 0 -2"></a-box>
             </a-entity>
           </a-entity>
 
           <a-sky material="color: pink"></a-sky>
-          <a-plane id="wBoard"  canvas-material="width: 512; height: 512" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
-         {/* <a-entity id="wBoard" geometry="primitive: plane; width: 500; height: 500" scale="10 4 4" class="selectable" position="0 2 -4"></a-entity>*/}
-          <a-box id="box2" class="selectable" scale="10 4 4" material="color: green; shader: flat" position="0 2 10"></a-box>
+          <a-plane id="wBoard" canvas-material="width: 512; height: 512;color: white" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
+         <a-box id="undoButton" position="0 4 -3" color="orange" class="selectable"></a-box>
+         <a-box id="colorBox" position="-4 4 -3" color={drawColor.color} class="selectable"></a-box>
 
         </a-scene>
       </div>
