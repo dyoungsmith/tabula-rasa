@@ -65,8 +65,17 @@ export default class Room extends Component {
         return intersectedEls.some(item=>item.id===entityId)
       }
 
+      const colorChange = ()=>{
+        drawColor.index++
+        if (drawColor.index >= possibleColors.length) drawColor.index = 0
+        drawColor.color = possibleColors[drawColor.index]
+        colorBox.setAttribute('color', drawColor.color)
+        ray.setAttribute('color', drawColor.color)
+      }
+
       remote.addEventListener('buttondown', function (e) {
 
+          if (intersectsWithRaycaster('colorBox')) return colorChange()
           if (intersectsWithRaycaster('undoButton')) return undo()
           
           drawing = true
@@ -180,12 +189,14 @@ export default class Room extends Component {
         ray.setAttribute('color', drawColor.color)
       })
 
-      cursor.addEventListener('raycaster-intersection',
-        e => {
-          console.log('gaze intersect', e)
-          e.stopPropagation()
-        }
-      )
+      
+
+      // cursor.addEventListener('raycaster-intersection',
+      //   e => {
+      //     console.log('gaze intersect', e)
+      //     e.stopPropagation()
+      //   }
+      // )
 
       //works without throttle as well
       wBoard.addEventListener('raycaster-intersected',
@@ -219,12 +230,8 @@ export default class Room extends Component {
             </a-entity>
           </a-entity>
 
-          <a-camera>
-            <a-cursor></a-cursor>
-          </a-camera>
-
           <a-sky material="color: pink"></a-sky>
-          <a-plane id="wBoard" canvas-material="width: 512; height: 512" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
+          <a-plane id="wBoard" canvas-material="width: 512; height: 512;color: white" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
          <a-box id="undoButton" position="0 4 -3" color="orange" class="selectable"></a-box>
          <a-box id="colorBox" position="-4 4 -3" color={drawColor.color} class="selectable"></a-box>
 
