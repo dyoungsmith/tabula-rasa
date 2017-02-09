@@ -153,8 +153,8 @@ export default class Room extends Component {
       
 
       function raycasterEventHandler (e) {
-
-             position = e.detail.intersection.point
+              //for raycaster-intersected, access intersection.point
+             position = e.detail.intersections[0].point
              if (!drawing) return;
              let proj = toBoardPosition(position, wBoard)
 
@@ -191,20 +191,20 @@ export default class Room extends Component {
 
       
 
-      // cursor.addEventListener('raycaster-intersection',
-      //   e => {
-      //     console.log('gaze intersect', e)
-      //     e.stopPropagation()
+
+      //before listener was on whiteboard, was triggered by gaze
+      // wBoard.addEventListener('raycaster-intersected',
+      //   e => { 
+      //     console.log('!!!', e.detail.raycaster)
+      //     eventThrottler(e, raycasterEventHandler)
       //   }
       // )
-
-      //works without throttle as well
-      wBoard.addEventListener('raycaster-intersected',
+      remote.addEventListener('raycaster-intersection',
         e => { 
-          // console.log('!!!', e)
           eventThrottler(e, raycasterEventHandler)
         }
       )
+
 
       //for simulating click without remote
       document.addEventListener('keydown', (e)=> remote.emit('buttondown'))
@@ -222,6 +222,10 @@ export default class Room extends Component {
           {/*<a-assets>
             <img id="fsPano" src="/IMG_3941.JPG" />
           </a-assets>*/}
+
+          <a-camera>
+            <a-cursor></a-cursor>
+          </a-camera>
 
           <a-entity position="-0.2 2.0 0">
             <a-entity id="remote" daydream-controller raycaster="objects: .selectable">
