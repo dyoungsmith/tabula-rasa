@@ -40,11 +40,6 @@ export default class Room extends Component {
       const remote = document.getElementById('remote')
       const cursor = document.querySelector('a-cursor')
 
-
-      //The firebase object
-      // const firebase = document.querySelector('a-scene').systems.firebase.firebase
-      // const db = firebase.database();
-
       ctx.lineWidth = 2;
       ctx.lineJoin = 'bevel';
       ctx.lineCap = 'round';
@@ -58,6 +53,7 @@ export default class Room extends Component {
 
       let history = [];
       let currentStroke = [];
+      db.ref('room1').set({});
 
       function intersectsWithRaycaster(entityId){
         const intersectedEls = remote.components.raycaster.intersectedEls;
@@ -87,14 +83,16 @@ export default class Room extends Component {
       remote.addEventListener('buttonup', function (e) {
           if (currentStroke.length) {
             history.push(currentStroke);
+            const newOuterIdx = history.length - 1;
 
             // update fb db
-            history.forEach((stroke, i) => {
-              stroke.forEach((substroke, j) => {
-                db.ref(`room1/${substroke.strokeColor}/${i}-${j}`).set({
-                  start: substroke.start,
-                  end: substroke.end
-                });
+            currentStroke.forEach((substroke, i) => {
+              db.ref(`room1/${newOuterIdx}-${i}`).set({
+                startX: substroke.start.x,
+                startY: substroke.start.y,
+                endX: substroke.end.x, 
+                endY: substroke.end.y,
+                strokeColor: substroke.strokeColor
               });
             });
             currentStroke = [];
@@ -104,20 +102,12 @@ export default class Room extends Component {
       });
 
       /* db format:
-        'green': {
-          'i-j': {  // key by outer-inner history array idx
-            start: {
-              x: 3,
-              y: 5
-            },
-            end; {
-              x: 4,
-              y: 9
-            }
-          }
-        },
-        'black': {
-          ...
+        'i-j': {  // key by 'outer-inner' history array idx
+          startX: 1,
+          startY: 4,
+          endX: 6,
+          endY: 9,
+          strokeColor: red
         }
       */
 
@@ -135,8 +125,7 @@ export default class Room extends Component {
           return { x, y }
       }
 
-      const draw = function (start, end, strokeColor = drawColor.color, shouldBroadcast=true, shouldRecord=true) {
-
+      const draw = function(start, end, strokeColor = drawColor.color, shouldRecord = true) {
         if (shouldRecord) {
           //deep copy of subStroke as to not close over and overwrite
           const subStroke = {
@@ -155,44 +144,58 @@ export default class Room extends Component {
         ctx.lineTo(end.x, end.y);
         ctx.stroke();
 
-        //change later to emit a firebase "draw" event
-        if (shouldBroadcast) {
-            // whiteboard.emit('draw', start, end, strokeColor);
-        }
-        component.updateTexture()
+        component.updateTexture();
       };
 
-      const undo = function(){
-        if (!history.length) return
-        history.pop()
-        component.clearContext()
-        history.forEach(stroke => 
-          stroke.forEach(subStroke => 
-            draw(subStroke.start, subStroke.end, subStroke.strokeColor, true, false)))
-
+      const undo = function() {
+        if (!history.length) return;
+        history.pop();
+        component.clearContext();
+        history.forEach(stroke =>
+          stroke.forEach(subStroke =>
+            draw(subStroke.start, subStroke.end, subStroke.strokeColor, false)
+          )
+        )
+        // UPDATE FB FROM HERE!!!
       }
-      
 
       function raycasterEventHandler (e) {
-              //for raycaster-intersected, access intersection.point
-             position = e.detail.intersections[0].point
-             if (!drawing) return;
-             let proj = toBoardPosition(position, wBoard)
+          //for raycaster-intersected, access intersection.point
+          position = e.detail.intersections[0].point
+          if (!drawing) return;
+          let proj = toBoardPosition(position, wBoard)
 
-             lastRayPosition.x = currentRayPosition.x;
-             lastRayPosition.y = currentRayPosition.y;
+          lastRayPosition.x = currentRayPosition.x;
+          lastRayPosition.y = currentRayPosition.y;
 
-             currentRayPosition.x = proj.x //- this.offsetLeft;
-             currentRayPosition.y = proj.y //- this.offsetTop;
+          currentRayPosition.x = proj.x //- this.offsetLeft;
+          currentRayPosition.y = proj.y //- this.offsetTop;
 
-             draw(lastRayPosition, currentRayPosition, drawColor.color, true);
-             
+          draw(lastRayPosition, currentRayPosition, drawColor.color);
       }
 
-      let eventTimeout
+      // set up fb listener for draw change events
+      db.ref(`room1`).on('value', snapshot => {
+        if (!snapshot.val()) return;
+        const strokes = snapshot.val();
+
+        Object.keys(strokes).forEach(substroke => {
+          const currSubstroke = strokes[substroke];
+          const start = {
+            x: currSubstroke.startX,
+            y: currSubstroke.startY
+          };
+          const end = {
+            x: currSubstroke.endX,
+            y: currSubstroke.endY
+          };
+          draw(start, end, currSubstroke.strokeColor);
+        });
+      });
+
+      let eventTimeout;
 
       function eventThrottler (e, fn) {
-
         if (!eventTimeout) {
           eventTimeout = setTimeout(function(){
             eventTimeout = null
@@ -203,14 +206,12 @@ export default class Room extends Component {
 
       //change the drawColor by entering box with gaze
       colorBox.addEventListener('mouseenter', ()=>{
-        drawColor.index++
-        if (drawColor.index >= possibleColors.length) drawColor.index = 0
-        drawColor.color = possibleColors[drawColor.index]
-        colorBox.setAttribute('color', drawColor.color)
-        ray.setAttribute('color', drawColor.color)
+        drawColor.index++;
+        if (drawColor.index >= possibleColors.length) drawColor.index = 0;
+        drawColor.color = possibleColors[drawColor.index];
+        colorBox.setAttribute('color', drawColor.color);
+        ray.setAttribute('color', drawColor.color);
       })
-
-      
 
 
       //before listener was on whiteboard, was triggered by gaze
@@ -226,11 +227,9 @@ export default class Room extends Component {
         }
       )
 
-
       //for simulating click without remote
       document.addEventListener('keydown', (e)=> remote.emit('buttondown'))
       document.addEventListener('keyup', (e)=> remote.emit('buttonup'))
-
     });
   }
 
@@ -256,7 +255,7 @@ export default class Room extends Component {
           </a-entity>
 
           <a-sky material="color: pink"></a-sky>
-          <a-plane id="wBoard" canvas-material="width: 512; height: 512;color: white" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
+          <a-plane id="wBoard" canvas-material="width: 512; height: 512; color: white" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
          <a-box id="undoButton" position="0 4 -3" color="orange" class="selectable"></a-box>
          <a-box id="colorBox" position="-4 4 -3" color={drawColor.color} class="selectable"></a-box>
 
