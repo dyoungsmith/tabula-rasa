@@ -102,8 +102,8 @@ export default class Room extends Component {
       });
 
       /* db format:
-        'i': {  // key by 'outerIdx' from history array
-          j: {
+        i: {  // key by outerIdx from history array
+          j: {  // innerIdx
             startX: 1,
             startY: 4,
             endX: 6,
@@ -160,7 +160,7 @@ export default class Room extends Component {
           )
         )
         // UPDATE FB FROM HERE!!!
-        db.ref(`room1/${idxToRemove}`).set(null);
+        db.ref(`room1/${idxToRemove}`).remove();
       }
 
       function raycasterEventHandler (e) {
@@ -178,11 +178,34 @@ export default class Room extends Component {
           draw(lastRayPosition, currentRayPosition, drawColor.color);
       }
 
-      // set up fb listener for draw change events
-      db.ref(`room1`).on('value', snapshot => {
+      // set up fb listener for drawing
+      db.ref(`room1`).on('child_changed', snapshot => {
+        console.log('CHILD WAS ADDED')
+        if (!snapshot.val()) return;
+        const substrokes = snapshot.val();    // array of strokes
+        // console.log('SNAPSHOT VAL', substrokes)
+    
+        Object.keys(substrokes).forEach(innerIdx => {
+          const currSubstroke = substrokes[innerIdx];
+          const start = {
+            x: currSubstroke.startX,
+            y: currSubstroke.startY
+          };
+          const end = {
+            x: currSubstroke.endX,
+            y: currSubstroke.endY
+          };
+          draw(start, end, substrokes[innerIdx].strokeColor);
+        })
+      });
+
+      // set up fb listener for undo
+      db.ref(`room1`).on('child_removed', snapshot => {
+        console.log('CHILD WAS REMOVED')
         if (!snapshot.val()) return;
         const strokes = snapshot.val();
-        component.clearContext();
+        console.log('STROKES TO DERETE', strokes);
+        // component.clearContext();
 
         Object.keys(strokes).forEach(outerIdx => {
           Object.keys(strokes[outerIdx]).forEach(innerIdx => {
@@ -198,9 +221,6 @@ export default class Room extends Component {
             draw(start, end, currSubstroke.strokeColor);
           })
         })
-
-        Object.keys(strokes).forEach(substroke => {
-        });
       });
 
       let eventTimeout;
