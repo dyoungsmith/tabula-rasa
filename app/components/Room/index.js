@@ -181,10 +181,13 @@ export default class Room extends Component {
       // set up fb listener for drawing
       db.ref(`room1`).on('child_changed', snapshot => {
         console.log('CHILD WAS ADDED')
+        console.log('HISTORY', history);
         if (!snapshot.val()) return;
         const substrokes = snapshot.val();    // array of strokes
-        // console.log('SNAPSHOT VAL', substrokes)
-    
+        console.log('SNAPSHOT VAL', substrokes)
+
+        const outerIdx = snapshot.ref.key;
+
         Object.keys(substrokes).forEach(innerIdx => {
           const currSubstroke = substrokes[innerIdx];
           const start = {
@@ -195,32 +198,72 @@ export default class Room extends Component {
             x: currSubstroke.endX,
             y: currSubstroke.endY
           };
-          draw(start, end, substrokes[innerIdx].strokeColor);
-        })
+          const strokeColor = substrokes[innerIdx].strokeColor;
+
+          draw(start, end, strokeColor);
+
+          // update history object across clients
+          if (!history[outerIdx] || !history[outerIdx][innerIdx]) {
+            history[outerIdx] = history[outerIdx] || [];
+            history[outerIdx].push({ start, end, strokeColor });
+          }
+        });
       });
+
+      // update remote history from fb
+      // db.ref(`room1`).on('child_added', snapshot => {
+      //   if (!snapshot.val()) return;
+      //   const substrokes = snapshot.val();
+        
+      //   Object.keys(substrokes).forEach(innerIdx => {
+      //     let subHistory = [];
+      //     // if (!history[outerIdx]) {
+      //       // Object.keys(substrokes[outerIdx]).forEach(innerIdx => {
+      //         const currSubstroke = substrokes[innerIdx];
+      //         const start = {
+      //           x: currSubstroke.startX,
+      //           y: currSubstroke.startY
+      //         };
+      //         const end = {
+      //           x: currSubstroke.endX,
+      //           y: currSubstroke.endY
+      //         };
+
+      //         subHistory.push({
+      //           start,
+      //           end,
+      //           strokeColor: currSubstroke.strokeColor
+      //         });
+      //       // })
+      //       history.push(subHistory)
+      //     // }
+      //   })
+      // })
 
       // set up fb listener for undo
       db.ref(`room1`).on('child_removed', snapshot => {
         console.log('CHILD WAS REMOVED')
-        if (!snapshot.val()) return;
-        const strokes = snapshot.val();
-        console.log('STROKES TO DERETE', strokes);
-        // component.clearContext();
+        console.log('HISTORY', history);
+        // if (!snapshot.val()) return;
+        // const strokes = snapshot.val();
+        // console.log('STROKES TO DERETE', strokes);
+        // // component.clearContext();
 
-        Object.keys(strokes).forEach(outerIdx => {
-          Object.keys(strokes[outerIdx]).forEach(innerIdx => {
-            const currSubstroke = strokes[outerIdx][innerIdx];
-            const start = {
-              x: currSubstroke.startX,
-              y: currSubstroke.startY
-            };
-            const end = {
-              x: currSubstroke.endX,
-              y: currSubstroke.endY
-            };
-            draw(start, end, currSubstroke.strokeColor);
-          })
-        })
+        // Object.keys(strokes).forEach(outerIdx => {
+        //   Object.keys(strokes[outerIdx]).forEach(innerIdx => {
+        //     const currSubstroke = strokes[outerIdx][innerIdx];
+        //     const start = {
+        //       x: currSubstroke.startX,
+        //       y: currSubstroke.startY
+        //     };
+        //     const end = {
+        //       x: currSubstroke.endX,
+        //       y: currSubstroke.endY
+        //     };
+        //     draw(start, end, currSubstroke.strokeColor);
+        //   })
+        // })
+        undo();
       });
 
       let eventTimeout;
