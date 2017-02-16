@@ -22,26 +22,52 @@ const drawColor = {
     color:'black'
   }
 
-var connection = new RTCMultiConnection();
+let peer
+let conn
+let call
+//URL.createObjectURL(stream)
+//call.on('close')
+
+
 
 export default class Room extends Component {
 
 
   componentDidMount() {
 
-    connection.audiosContainer = document.getElementById('audios-container');
+    //---------------------------------------
+    //Get Audio/Video Stream
+    navigator.getUserMedia(
+      {audio: true},
+      function(stream) {
+        window.localStream = stream;
+      },
+      function(error){
+        console.log(error)
+      }
+    )
 
-    var predefinedRoomId = 'YOUR_Name';
 
-    document.getElementById('btn-open-room').onclick = function() {
-        this.disabled = true;
-        connection.open( predefinedRoomId );
-    };
+    //---------------------------------------
 
-    document.getElementById('btn-join-room').onclick = function() {
-        this.disabled = true;
-        connection.join( predefinedRoomId );
-    };
+
+    const connectedPeers = {};
+
+
+
+
+
+    // Call a peer, providing our mediaStream
+
+
+    //---------------------------------------
+
+
+
+
+
+
+    //---------------------------------------
 
     document.addEventListener("loaded", () => {
 
@@ -242,70 +268,111 @@ export default class Room extends Component {
         console.log("radios", radios);
         value = radios.filter(radio => radio.checked === true)[0].value
         value2 = radios.filter(radio => radio.checked !== true)[0].value
+
+        console.log("value", value)
+        console.log("value2", value2)
+
+
+        peer = new Peer(`${value2}`, {host: '192.168.0.8', port: 9000, path: '/peerjs'});
+        console.log("peer", peer)
+        // conn = peer.connect(value);
+        // console.log("conn", conn)
+
+
+
+
     }
 
-    connection.socketURL = 'https://rtcmulticonnection.herokuapp.com:443/';
+    function call() {
 
-    connection.socketMessageEvent = 'audio-conference-demo';
-
-    connection.session = {
-        audio: true
-    };
-
-    connection.sdpConstraints.mandatory = {
-        OfferToReceiveAudio: true,
-        OfferToReceiveVideo: false
-    };
-
-    connection.mediaConstraints.video = false;
-
-
-    connection.onstream = function(event) {
-      console.log("event", event);
-      var width = parseInt(connection.audiosContainer.clientWidth / 2) - 20;
-      var mediaElement = getMediaElement(event.mediaElement, {
-        title: event.userid,
-        buttons: ['full-screen'],
-        width: width,
-        showOnMouseEnter: false
+      var conn = peer.connect(value);
+      conn.on('open', function(){
+        conn.send('hi!');
       });
-      connection.audiosContainer.appendChild(mediaElement);
 
-      setTimeout(function() {
-          console.log("this is playing")
-          mediaElement.media.play();
-        }, 5000);
+      call = peer.call(value,
+        window.localStream);
+      console.log("call2", call)
 
-      mediaElement.id = event.streamid;
-    };
+      peer.on('connection', function(c) {
 
-    connection.onstreamended = function(event) {
-          var mediaElement = document.getElementById(event.streamid);
-          if(mediaElement) {
-              mediaElement.parentNode.removeChild(mediaElement);
-          }
-    };
+        console.log('conn', c)
+
+        // c.on('data', function(data) {
+        //   c.on('close', function(){
+        //     delete connectedPeers[c.peer];
+        //   });
+        // })
+        // c.label === 'file') {
+        //   c.on('data', function(data) {
+        //     if (data.constructor === ArrayBuffer) {
+        //       var dataView = new Uint8Array(data);
+        //       var dataBlob = Blob([dataView]);
+        //       var url = window.URL.createObjectURL(dataBlob);
+        //     }
+        //   })
+        // }
+        // connectedPeers[c.peer] = true;
 
 
+      });
+
+      //---------------------------------------
+
+
+      peer.on('open', function(id) {
+        console.log('My peer ID is: ' + id);
+        console.log('Peer id: ' + peer.id);
+      });
+
+      //Receiving a call
+
+
+      peer.on('call', function(call) {
+        console.log("call in peer on", call)
+        // Answer the call, providing our mediaStream
+        call.answer(window.localStream);
+        if (window.existingCall) {
+          window.existingCall.close();
+        }
+
+        call.on('stream', function(stream){
+          $('#their-audio').prop('src', URL.createObjectURL(stream));
+        })
+
+        window.existingCall = call;
+      });
+
+
+      // conn.on('open', function() {
+      //   // Receive messages
+      //   conn.on('data', function(data) {
+      //     console.log('Received', data);
+      //   });
+
+      //   // Send messages
+      //   conn.send('Hello!');
+      // });
+    }
 
     return (
       <div style={{ width: '100%', height: '100%' }}>
 
-        <input type="text" id="id1" value="id1" />
+        <input type="text" id="id1" value="id1"/>
 
         <input type="text" id="id2" value="id2" />
 
         <audio id="their-audio"></audio>
-        <button id="btn-open-room">Open Room</button>
-        <button id="btn-join-room">Join Room</button>
+
         <button onClick={chooseDest.bind(this)}>
           choose dest id
+        </button>
+        <button onClick={call.bind(this)}>
+          call
         </button>
         <input type="radio" name="switch" value="id1" />
 
         <input type="radio" name="switch" value="id2" />
-
-        <div id="audios-container"></div>
 
         <a-scene firebase={ aframeConfig } inspector="url: https://aframe.io/releases/0.3.0/aframe-inspector.min.js">
 
