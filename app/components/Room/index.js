@@ -24,17 +24,21 @@ const drawColor = {
 
 export default class Room extends Component {
   componentDidMount() {
-    document.addEventListener("loaded", () => {
+    document.addEventListener('loaded', () => {
 
       const possibleColors = ['black','red','orange','yellow','green','blue','indigo','violet']
 
       const wBoard = document.getElementById('wBoard')  // whiteboard
+      const dragBoard = document.getElementById('dragBoard')
       const undoButton = document.getElementById('undoButton')
       const colorBox = document.getElementById('colorBox')
+      const addTemplate = document.getElementById('addTemplate')
       const ray = document.getElementById('ray')
 
-      const component = document.getElementById("wBoard").components["canvas-material"];
-      const ctx = component.getContext("2d");
+      const component = wBoard.components['canvas-material']
+      const ctx = component.getContext('2d')
+      const dragCanvas = dragBoard.components['canvas-material']
+      const dragCtx = dragCanvas.getContext('2d')
       const marker = document.querySelector('#marker')
 
       const scene = document.querySelector('a-scene')
@@ -54,7 +58,8 @@ export default class Room extends Component {
       const currentRayPosition = { x: 0, y: 0 };
       const lastRayPosition = { x: 0, y: 0 };
 
-      let drawing = false;
+      let drawing = false
+      let dragging = false
 
       let position;
 
@@ -100,7 +105,7 @@ export default class Room extends Component {
 
 
       function toBoardPosition(pointPosition, wBoard) {
-          const canvasMat = wBoard.components["canvas-material"];
+          const canvasMat = wBoard.components['canvas-material'];
           const canWidth = canvasMat.data.width;
           const canHeight = canvasMat.data.height;
 
@@ -152,12 +157,14 @@ export default class Room extends Component {
 
       }
 
+      const dragTemplate = function(){}
+
 
       function raycasterEventHandler (e) {
               //for raycaster-intersected, access intersection.point
              position = e.detail.intersections[0].point
              marker.setAttribute('position', position)
-             if (!drawing) return;
+             if (!drawing && !dragging) return;
              let proj = toBoardPosition(position, wBoard)
 
              lastRayPosition.x = currentRayPosition.x;
@@ -165,7 +172,7 @@ export default class Room extends Component {
 
              currentRayPosition.x = proj.x //- this.offsetLeft;
              currentRayPosition.y = proj.y //- this.offsetTop;
-
+             // if (dragging) dragTemplate(lastRayPosition, currentRayPosition, selectedTemplate)
              draw(lastRayPosition, currentRayPosition, drawColor.color, true);
 
       }
@@ -189,6 +196,17 @@ export default class Room extends Component {
         drawColor.color = possibleColors[drawColor.index]
         colorBox.setAttribute('color', drawColor.color)
         ray.setAttribute('color', drawColor.color)
+      })
+
+      addTemplate.addEventListener('mouseenter', ()=>{
+        dragging = true
+        // selectedTemplate = 'function    (     ) {'
+        console.log('yup')
+        dragCtx.font = "42px Arial"
+        dragCtx.fillStyle = drawColor.color
+        dragCtx.fillText('yoyowerld?', 10,50)
+        dragCanvas.updateTexture()
+        console.log(ctx.fillText,'!!!!!!!!!!!!!!!')
       })
 
 
@@ -243,8 +261,10 @@ export default class Room extends Component {
           </a-entity>
           <a-sky material="color: pink"></a-sky>
           <a-plane id="wBoard" canvas-material="width: 512; height: 512;color: white" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
+          <a-plane id="dragBoard" canvas-material="width: 512; height: 512;color: rgba(0,0,0,0)" height="10" width="20" class="selectable" position="0 0 -7.99" ></a-plane>
          <a-box id="undoButton" position="0 4 -3" color="orange" class="selectable"></a-box>
          <a-box id="colorBox" position="-4 4 -3" color={drawColor.color} class="selectable"></a-box>
+         <a-box id="addTemplate" position="-4 2 -3" color="white" class="selectable"></a-box>
 
         </a-scene>
       </div>
