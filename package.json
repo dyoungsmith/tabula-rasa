@@ -4,7 +4,7 @@
     "description": "A VR whiteboarding app.",
     "main": "webpack.config.js",
     "scripts": {
-        "start": "webpack-dev-server",
+        "start": "webpack-dev-server --https",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [

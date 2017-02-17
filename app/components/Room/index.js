@@ -22,8 +22,13 @@ const drawColor = {
     color:'black'
 }
 
+var connection = new RTCMultiConnection();
+
 export default class Room extends Component {
+
+
   componentDidMount() {
+
     document.addEventListener("loaded", () => {
 
       const possibleColors = ['black','red','orange','yellow','green','blue','indigo','violet']
@@ -258,6 +263,35 @@ export default class Room extends Component {
   }
 
   render() {
+    connection.socketURL = 'https://rtcmulticonnection.herokuapp.com:443/';
+    connection.socketMessageEvent = 'audio-conference';
+    connection.session = {
+        audio: true
+    };
+    connection.sdpConstraints.mandatory = {
+        OfferToReceiveAudio: true,
+        OfferToReceiveVideo: false
+    };
+
+    connection.mediaConstraints.video = false;
+    connection.openOrJoin( "test" );
+    .push().key
+    connection.onstream = function(event) {
+      var width = parseInt(connection.audiosContainer.clientWidth / 2) - 20;
+      var mediaElement = getMediaElement(event.mediaElement, {
+        title: event.userid,
+        buttons: ['full-screen'],
+        width: width,
+        showOnMouseEnter: false
+      });
+      setTimeout(function() {
+          console.log("this is playing")
+          mediaElement.media.play();
+        }, 5000);
+
+      mediaElement.id = event.streamid;
+    };
+
     return (
       <div style={{ width: '100%', height: '100%' }}>
 
@@ -274,8 +308,8 @@ export default class Room extends Component {
           </a-camera>
 
           <a-entity position="-0.2 2.0 0">
-            <a-entity id="remote" daydream-controller raycaster="objects: .selectable">
-              <a-cone id="ray" color={drawColor.color} position="0 0 -2" rotation="-90 0 0" radius-bottom="0.005" radius-top="0.001" height="4"></a-cone>
+            <a-entity visible="false" id="remote" daydream-controller raycaster="objects: .selectable">
+              <a-cone visible="false" id="ray" color={drawColor.color} position="0 0 -2" rotation="-90 0 0" radius-bottom="0.005" radius-top="0.001" height="4"></a-cone>
               <a-box id="position-guide" visible="false" position="0 0 -2"></a-box>
             </a-entity>
           </a-entity>
@@ -283,7 +317,9 @@ export default class Room extends Component {
           <a-entity position="0 0 0.5">
             <a-entity id="marker" obj-model="obj: #marker-obj; mtl: #marker-mtl" rotation="0 270 0" scale=".25 .25 .25"></a-entity>
           </a-entity>
+
           <a-sky material="color: pink"></a-sky>
+
           <a-plane id="wBoard" canvas-material="width: 512; height: 512; color: white" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
          <a-box id="undoButton" position="0 4 -3" color="orange" class="selectable"></a-box>
          <a-box id="colorBox" position="-4 4 -3" color={drawColor.color} class="selectable"></a-box>
@@ -293,4 +329,3 @@ export default class Room extends Component {
     );
   }
 }
-
