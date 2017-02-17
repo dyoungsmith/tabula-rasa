@@ -18,7 +18,7 @@ let isVR = false;
 // let aframeConfig = AFRAME.utils.styleParser.stringify(config);
 
 const drawColor = {
-    index:0, 
+    index:0,
     color:'black'
 }
 
@@ -32,9 +32,10 @@ export default class Room extends Component {
       const undoButton = document.getElementById('undoButton')
       const colorBox = document.getElementById('colorBox')
       const ray = document.getElementById('ray')
-      
+
       const component = document.getElementById("wBoard").components["canvas-material"];
       const ctx = component.getContext("2d");
+      const marker = document.querySelector('#marker')
 
       const scene = document.querySelector('a-scene')
       const remote = document.getElementById('remote')
@@ -113,7 +114,6 @@ export default class Room extends Component {
         }
       */
 
-      //converts 3D point (aframe) to 2d space (wb)
       function toBoardPosition(pointPosition, wBoard) {
           const canvasMat = wBoard.components["canvas-material"];
           const canWidth = canvasMat.data.width;
@@ -133,6 +133,8 @@ export default class Room extends Component {
           const subStroke = {
             start: Object.assign({}, start),  // ie: {x: 3, y: 4}
             end: Object.assign({}, end),
+            start:Object.assign({}, start),
+            end:Object.assign({},end),
             strokeColor
           }
           currentStroke.push(subStroke);
@@ -168,7 +170,6 @@ export default class Room extends Component {
           position = e.detail.intersections[0].point
           if (!drawing) return;
           let proj = toBoardPosition(position, wBoard)
-
           lastRayPosition.x = currentRayPosition.x;
           lastRayPosition.y = currentRayPosition.y;
 
@@ -210,59 +211,10 @@ export default class Room extends Component {
         });
       });
 
-      // update remote history from fb
-      // db.ref(`room1`).on('child_added', snapshot => {
-      //   if (!snapshot.val()) return;
-      //   const substrokes = snapshot.val();
-        
-      //   Object.keys(substrokes).forEach(innerIdx => {
-      //     let subHistory = [];
-      //     // if (!history[outerIdx]) {
-      //       // Object.keys(substrokes[outerIdx]).forEach(innerIdx => {
-      //         const currSubstroke = substrokes[innerIdx];
-      //         const start = {
-      //           x: currSubstroke.startX,
-      //           y: currSubstroke.startY
-      //         };
-      //         const end = {
-      //           x: currSubstroke.endX,
-      //           y: currSubstroke.endY
-      //         };
-
-      //         subHistory.push({
-      //           start,
-      //           end,
-      //           strokeColor: currSubstroke.strokeColor
-      //         });
-      //       // })
-      //       history.push(subHistory)
-      //     // }
-      //   })
-      // })
-
       // set up fb listener for undo
       db.ref(`room1`).on('child_removed', snapshot => {
         console.log('CHILD WAS REMOVED')
         console.log('HISTORY', history);
-        // if (!snapshot.val()) return;
-        // const strokes = snapshot.val();
-        // console.log('STROKES TO DERETE', strokes);
-        // // component.clearContext();
-
-        // Object.keys(strokes).forEach(outerIdx => {
-        //   Object.keys(strokes[outerIdx]).forEach(innerIdx => {
-        //     const currSubstroke = strokes[outerIdx][innerIdx];
-        //     const start = {
-        //       x: currSubstroke.startX,
-        //       y: currSubstroke.startY
-        //     };
-        //     const end = {
-        //       x: currSubstroke.endX,
-        //       y: currSubstroke.endY
-        //     };
-        //     draw(start, end, currSubstroke.strokeColor);
-        //   })
-        // })
         undo();
       });
 
@@ -286,16 +238,15 @@ export default class Room extends Component {
         ray.setAttribute('color', drawColor.color);
       })
 
-
       //before listener was on whiteboard, was triggered by gaze
       // wBoard.addEventListener('raycaster-intersected',
-      //   e => { 
+      //   e => {
       //     console.log('!!!', e.detail.raycaster)
       //     eventThrottler(e, raycasterEventHandler)
       //   }
       // )
       remote.addEventListener('raycaster-intersection',
-        e => { 
+        e => {
           eventThrottler(e, raycasterEventHandler)
         }
       )
@@ -312,9 +263,11 @@ export default class Room extends Component {
 
         <a-scene inspector="url: https://aframe.io/releases/0.3.0/aframe-inspector.min.js">
 
-          {/*<a-assets>
-            <img id="fsPano" src="/IMG_3941.JPG" />
-          </a-assets>*/}
+         <a-assets>
+            <a-asset-item id="marker-obj" src="Marker_.obj"></a-asset-item>
+            <a-asset-item id="marker-mtl" src="Marker_.mtl"></a-asset-item>
+
+          </a-assets>
 
           <a-camera>
             <a-cursor></a-cursor>
@@ -327,6 +280,9 @@ export default class Room extends Component {
             </a-entity>
           </a-entity>
 
+          <a-entity position="0 0 0.5">
+            <a-entity id="marker" obj-model="obj: #marker-obj; mtl: #marker-mtl" rotation="0 270 0" scale=".25 .25 .25"></a-entity>
+          </a-entity>
           <a-sky material="color: pink"></a-sky>
           <a-plane id="wBoard" canvas-material="width: 512; height: 512; color: white" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
          <a-box id="undoButton" position="0 4 -3" color="orange" class="selectable"></a-box>
