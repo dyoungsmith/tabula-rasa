@@ -29,20 +29,6 @@ export default class Room extends Component {
 
   componentDidMount() {
 
-    connection.audiosContainer = document.getElementById('audios-container');
-
-    var predefinedRoomId = 'YOUR_Name';
-
-    document.getElementById('btn-open-room').onclick = function() {
-        this.disabled = true;
-        connection.open( predefinedRoomId );
-    };
-
-    document.getElementById('btn-join-room').onclick = function() {
-        this.disabled = true;
-        connection.join( predefinedRoomId );
-    };
-
     document.addEventListener("loaded", () => {
 
       const possibleColors = ['black','red','orange','yellow','green','blue','indigo','violet']
@@ -235,33 +221,19 @@ export default class Room extends Component {
   }
 
   render() {
-    let value;
-    let value2;
-    function chooseDest() {
-        let radios = Array.from(document.getElementsByName('switch'));
-        console.log("radios", radios);
-        value = radios.filter(radio => radio.checked === true)[0].value
-        value2 = radios.filter(radio => radio.checked !== true)[0].value
-    }
-
     connection.socketURL = 'https://rtcmulticonnection.herokuapp.com:443/';
-
-    connection.socketMessageEvent = 'audio-conference-demo';
-
+    connection.socketMessageEvent = 'audio-conference';
     connection.session = {
         audio: true
     };
-
     connection.sdpConstraints.mandatory = {
         OfferToReceiveAudio: true,
         OfferToReceiveVideo: false
     };
 
     connection.mediaConstraints.video = false;
-
-
+    connection.openOrJoin( "test" );
     connection.onstream = function(event) {
-      console.log("event", event);
       var width = parseInt(connection.audiosContainer.clientWidth / 2) - 20;
       var mediaElement = getMediaElement(event.mediaElement, {
         title: event.userid,
@@ -269,8 +241,6 @@ export default class Room extends Component {
         width: width,
         showOnMouseEnter: false
       });
-      connection.audiosContainer.appendChild(mediaElement);
-
       setTimeout(function() {
           console.log("this is playing")
           mediaElement.media.play();
@@ -278,15 +248,6 @@ export default class Room extends Component {
 
       mediaElement.id = event.streamid;
     };
-
-    connection.onstreamended = function(event) {
-          var mediaElement = document.getElementById(event.streamid);
-          if(mediaElement) {
-              mediaElement.parentNode.removeChild(mediaElement);
-          }
-    };
-
-
 
     return (
       <div style={{ width: '100%', height: '100%' }}>
