@@ -233,6 +233,7 @@ export default class Room extends Component {
 
     connection.mediaConstraints.video = false;
     connection.openOrJoin( "test" );
+    .push().key
     connection.onstream = function(event) {
       var width = parseInt(connection.audiosContainer.clientWidth / 2) - 20;
       var mediaElement = getMediaElement(event.mediaElement, {
@@ -251,22 +252,6 @@ export default class Room extends Component {
 
     return (
       <div style={{ width: '100%', height: '100%' }}>
-
-        <input type="text" id="id1" value="id1" />
-
-        <input type="text" id="id2" value="id2" />
-
-        <audio id="their-audio"></audio>
-        <button id="btn-open-room">Open Room</button>
-        <button id="btn-join-room">Join Room</button>
-        <button onClick={chooseDest.bind(this)}>
-          choose dest id
-        </button>
-        <input type="radio" name="switch" value="id1" />
-
-        <input type="radio" name="switch" value="id2" />
-
-        <div id="audios-container"></div>
 
         <a-scene firebase={ aframeConfig } inspector="url: https://aframe.io/releases/0.3.0/aframe-inspector.min.js">
 
