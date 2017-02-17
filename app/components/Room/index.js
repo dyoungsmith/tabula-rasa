@@ -59,7 +59,7 @@ export default class Room extends Component {
 
       let history = [];
       let currentStroke = [];
-      db.ref('room1').set({});
+      // db.ref('room1').push()
 
       function intersectsWithRaycaster(entityId){
         const intersectedEls = remote.components.raycaster.intersectedEls;
@@ -96,7 +96,7 @@ export default class Room extends Component {
               db.ref(`room1/${newOuterIdx}/${i}`).set({
                 startX: substroke.start.x,
                 startY: substroke.start.y,
-                endX: substroke.end.x, 
+                endX: substroke.end.x,
                 endY: substroke.end.y,
                 strokeColor: substroke.strokeColor
               });
@@ -274,8 +274,7 @@ export default class Room extends Component {
     };
 
     connection.mediaConstraints.video = false;
-    connection.openOrJoin( "test" );
-    .push().key
+    connection.openOrJoin( "room1" );
     connection.onstream = function(event) {
       var width = parseInt(connection.audiosContainer.clientWidth / 2) - 20;
       var mediaElement = getMediaElement(event.mediaElement, {
