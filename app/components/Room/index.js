@@ -23,6 +23,7 @@ const drawColor = {
 }
 
 var connection = new RTCMultiConnection();
+let remoteMarker;
 
 export default class Room extends Component {
 
@@ -173,6 +174,7 @@ export default class Room extends Component {
       function raycasterEventHandler (e) {
           //for raycaster-intersected, access intersection.point
           position = e.detail.intersections[0].point
+          marker.setAttribute('position', position)
           if (!drawing) return;
           let proj = toBoardPosition(position, wBoard)
           lastRayPosition.x = currentRayPosition.x;
@@ -205,6 +207,22 @@ export default class Room extends Component {
             y: currSubstroke.endY
           };
           const strokeColor = substrokes[innerIdx].strokeColor;
+
+          // if (!remoteMarker){
+          //   var entityMain = document.createElement('a-entity');
+          //   var entitySub = document.createElement('a-entity');
+          //   entityMain.setAttribute('position', '0 0 0.5');
+          //   entitySub.setAttribute('id', 'marker2');
+          //   entitySub.setAttribute('obj-model', "obj: #marker-obj; mtl: #marker-mtl");
+          //   entitySub.setAttribute('rotation', "0 270 0");
+          //   entitySub.setAttribute('scale', ".25 .25 .25");
+          //   entityMain.appendChild(entitySub);
+          //   document.querySelector('a-scene').appendchild(entityMain);
+          //   // remoteMarker =
+
+          // } else {
+
+          // }
 
           draw(start, end, strokeColor);
 
@@ -274,13 +292,12 @@ export default class Room extends Component {
     };
 
     connection.mediaConstraints.video = false;
-    connection.openOrJoin( "room1" );
+    connection.openOrJoin("room1");
     connection.onstream = function(event) {
-      var width = parseInt(connection.audiosContainer.clientWidth / 2) - 20;
+      console.log("ONSTREAM, event")
       var mediaElement = getMediaElement(event.mediaElement, {
         title: event.userid,
         buttons: ['full-screen'],
-        width: width,
         showOnMouseEnter: false
       });
       setTimeout(function() {
@@ -299,6 +316,7 @@ export default class Room extends Component {
          <a-assets>
             <a-asset-item id="marker-obj" src="Marker_.obj"></a-asset-item>
             <a-asset-item id="marker-mtl" src="Marker_.mtl"></a-asset-item>
+            <img id="classroom" src="classroom.jpg"></img>
 
           </a-assets>
 
@@ -317,9 +335,9 @@ export default class Room extends Component {
             <a-entity id="marker" obj-model="obj: #marker-obj; mtl: #marker-mtl" rotation="0 270 0" scale=".25 .25 .25"></a-entity>
           </a-entity>
 
-          <a-sky material="color: pink"></a-sky>
+          <a-sky src="#classroom"></a-sky>
 
-          <a-plane id="wBoard" canvas-material="width: 512; height: 512; color: white" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
+         <a-plane id="wBoard" canvas-material="width: 512; height: 512; color: white" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
          <a-box id="undoButton" position="0 4 -3" color="orange" class="selectable"></a-box>
          <a-box id="colorBox" position="-4 4 -3" color={drawColor.color} class="selectable"></a-box>
 
