@@ -1,7 +1,7 @@
-import React, { Component } from 'react';
-import 'aframe-firebase-component';
-import '../aframe/components/canvasMaterial.js';
-import config from '../../db/config.js';
+import React, { Component } from 'react'
+import 'aframe-firebase-component'
+import '../aframe/components/canvasMaterial.js'
+import config from '../../db/config.js'
 
 // // Used to send logs to the server in case we don't have remote mobile console setup
 // function netLog(...input){
@@ -11,34 +11,37 @@ import config from '../../db/config.js';
 //   // axios.post('/api/logs', {message: joinedInput } )
 // }
 
-let isVR = false;
+let isVR = false
 
 
 // Copy the config.js object from the slack channel
-let aframeConfig = AFRAME.utils.styleParser.stringify(config);
+let aframeConfig = AFRAME.utils.styleParser.stringify(config)
 
 const drawColor = {
     index:0,
     color:'black'
   }
 
+const reactoProblem = `
+Find the sum of a
+multidimensional
+array. For example:
+[1,[2,[[3]]]] //6`
+
 export default class Room extends Component {
   componentDidMount() {
-    document.addEventListener('loaded', () => {
+    document.addEventListener("loaded", () => {
 
       const possibleColors = ['black','red','orange','yellow','green','blue','indigo','violet']
 
       const wBoard = document.getElementById('wBoard')  // whiteboard
-      const dragBoard = document.getElementById('dragBoard')
       const undoButton = document.getElementById('undoButton')
       const colorBox = document.getElementById('colorBox')
       const addTemplate = document.getElementById('addTemplate')
       const ray = document.getElementById('ray')
 
-      const component = wBoard.components['canvas-material']
-      const ctx = component.getContext('2d')
-      const dragCanvas = dragBoard.components['canvas-material']
-      const dragCtx = dragCanvas.getContext('2d')
+      const component = document.getElementById("wBoard").components["canvas-material"]
+      const ctx = component.getContext("2d")
       const marker = document.querySelector('#marker')
 
       const scene = document.querySelector('a-scene')
@@ -48,20 +51,20 @@ export default class Room extends Component {
 
       //The firebase object
       // const firebase = document.querySelector('a-scene').systems.firebase.firebase
-      // const db = firebase.database();
+      // const db = firebase.database()
 
-      ctx.lineWidth = 2;
-      ctx.lineJoin = 'bevel';
-      ctx.lineCap = 'round';
+      ctx.lineWidth = 2
+      ctx.lineJoin = 'bevel'
+      ctx.lineCap = 'round'
 
 
-      const currentRayPosition = { x: 0, y: 0 };
-      const lastRayPosition = { x: 0, y: 0 };
+      const currentRayPosition = { x: 0, y: 0 }
+      const lastRayPosition = { x: 0, y: 0 }
 
       let drawing = false
-      let dragging = false
 
-      let position;
+      let position
+      let proj //
 
       let history = []
       let currentStroke = []
@@ -87,9 +90,9 @@ export default class Room extends Component {
           drawing = true
           let proj = toBoardPosition(position, wBoard)
           //offsets would be necessary for whiteboards not placed at origin
-          currentRayPosition.x = proj.x //- this.offsetLeft;
-          currentRayPosition.y = proj.y //- this.offsetTop;
-      });
+          currentRayPosition.x = proj.x //- this.offsetLeft
+          currentRayPosition.y = proj.y //- this.offsetTop
+      })
 
       remote.addEventListener('buttonup', function (e) {
 
@@ -99,15 +102,15 @@ export default class Room extends Component {
           }
 
           drawing = false
-      });
+      })
 
       //converts 3D point to 2d space
 
 
       function toBoardPosition(pointPosition, wBoard) {
-          const canvasMat = wBoard.components['canvas-material'];
-          const canWidth = canvasMat.data.width;
-          const canHeight = canvasMat.data.height;
+          const canvasMat = wBoard.components["canvas-material"]
+          const canWidth = canvasMat.data.width
+          const canHeight = canvasMat.data.height
 
           const wBoardHeight = wBoard.getAttribute('height')
           const wBoardWidth = wBoard.getAttribute('width')
@@ -135,17 +138,17 @@ export default class Room extends Component {
         // Draw the line between the start and end positions
         // that is colored with the given color.
         ctx.beginPath()
-        ctx.strokeStyle = strokeColor;
-        ctx.moveTo(start.x, start.y);
-        ctx.lineTo(end.x, end.y);
-        ctx.stroke();
+        ctx.strokeStyle = strokeColor
+        ctx.moveTo(start.x, start.y)
+        ctx.lineTo(end.x, end.y)
+        ctx.stroke()
 
         //change later to emit a firebase "draw" event
         if (shouldBroadcast) {
-            // whiteboard.emit('draw', start, end, strokeColor);
+            // whiteboard.emit('draw', start, end, strokeColor)
         }
         component.updateTexture()
-      };
+      }
 
       const undo = function(){
         if (!history.length) return
@@ -157,23 +160,21 @@ export default class Room extends Component {
 
       }
 
-      const dragTemplate = function(){}
-
 
       function raycasterEventHandler (e) {
-              //for raycaster-intersected, access intersection.point
+              //for raycaster-intersected on wBoard, access intersection.point
              position = e.detail.intersections[0].point
              marker.setAttribute('position', position)
-             if (!drawing && !dragging) return;
-             let proj = toBoardPosition(position, wBoard)
+             proj = toBoardPosition(position, wBoard)
+             if (!drawing) return
 
-             lastRayPosition.x = currentRayPosition.x;
-             lastRayPosition.y = currentRayPosition.y;
+             lastRayPosition.x = currentRayPosition.x
+             lastRayPosition.y = currentRayPosition.y
 
-             currentRayPosition.x = proj.x //- this.offsetLeft;
-             currentRayPosition.y = proj.y //- this.offsetTop;
-             // if (dragging) dragTemplate(lastRayPosition, currentRayPosition, selectedTemplate)
-             draw(lastRayPosition, currentRayPosition, drawColor.color, true);
+             currentRayPosition.x = proj.x //- this.offsetLeft
+             currentRayPosition.y = proj.y //- this.offsetTop
+
+             draw(lastRayPosition, currentRayPosition, drawColor.color, true)
 
       }
 
@@ -199,14 +200,11 @@ export default class Room extends Component {
       })
 
       addTemplate.addEventListener('mouseenter', ()=>{
-        dragging = true
-        // selectedTemplate = 'function    (     ) {'
-        console.log('yup')
-        dragCtx.font = "42px Arial"
-        dragCtx.fillStyle = drawColor.color
-        dragCtx.fillText('yoyowerld?', 10,50)
-        dragCanvas.updateTexture()
-        console.log(ctx.fillText,'!!!!!!!!!!!!!!!')
+        ctx.font = "42px Arial"
+        ctx.fillStyle = drawColor.color
+        ctx.fillText('function         (      ){', proj.x,proj.y)
+        component.updateTexture()
+        console.log('!!!',proj)
       })
 
 
@@ -215,7 +213,6 @@ export default class Room extends Component {
       //before listener was on whiteboard, was triggered by gaze
       // wBoard.addEventListener('raycaster-intersected',
       //   e => {
-      //     console.log('!!!', e.detail.raycaster)
       //     eventThrottler(e, raycasterEventHandler)
       //   }
       // )
@@ -230,7 +227,7 @@ export default class Room extends Component {
       document.addEventListener('keydown', (e)=> remote.emit('buttondown'))
       document.addEventListener('keyup', (e)=> remote.emit('buttonup'))
 
-    });
+    })
   }
 
   render() {
@@ -260,15 +257,18 @@ export default class Room extends Component {
             <a-entity id="marker" obj-model="obj: #marker-obj; mtl: #marker-mtl" rotation="0 270 0" scale=".25 .25 .25"></a-entity>
           </a-entity>
           <a-sky material="color: pink"></a-sky>
-          <a-plane id="wBoard" canvas-material="width: 512; height: 512;color: white" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
-          <a-plane id="dragBoard" canvas-material="width: 512; height: 512;color: rgba(0,0,0,0)" height="10" width="20" class="selectable" position="0 0 -7.99" ></a-plane>
+          <a-plane id="wBoard" canvas-material="width: 512; height: 512; color: white" height="10" width="20" class="selectable" position="0 0 -8" ></a-plane>
+          <a-plane id="problemText" height="10" width="8" position="-12 0 -6" rotation="0 45 0" canvas-material={`width: 408; height: 512; color: black; textColor: green; text: ${reactoProblem}`}></a-plane>
+        <a-plane id="functionTemp" height="2" width="5" position="-10 5 -8" canvas-material="width: 100; height: 25; color: black; textColor: green; text: function"></a-plane>
+        <a-plane id="forTemp" height="2" width="5" position="-7 5 -8" canvas-material="width: 100; height: 25; color: black; textColor: green; text: for(var i ="></a-plane>
+
          <a-box id="undoButton" position="0 4 -3" color="orange" class="selectable"></a-box>
          <a-box id="colorBox" position="-4 4 -3" color={drawColor.color} class="selectable"></a-box>
          <a-box id="addTemplate" position="-4 2 -3" color="white" class="selectable"></a-box>
 
         </a-scene>
       </div>
-    );
+    )
   }
 }
 

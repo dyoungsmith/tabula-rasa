@@ -11,6 +11,17 @@ AFRAME.registerComponent('canvas-material', {
         color: {
             type: 'color',
             default: 'yellow'
+        },
+        text: {
+            type: 'string'
+        },
+        fontSize: {
+            type: 'int',
+            default: 36
+        }, 
+        textColor: {
+            type: 'string',
+            default: 'black'
         }
     },
 
@@ -26,7 +37,6 @@ AFRAME.registerComponent('canvas-material', {
         var _this = this;
         this.canvas.width = this.data.width;
         this.canvas.height = this.data.height;
-
 
         const ctx = this.canvas.getContext("2d");
         ctx.fillStyle = this.data.color;
@@ -44,6 +54,24 @@ AFRAME.registerComponent('canvas-material', {
         this.clearContext = function() {
             ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
             this.texture.needsUpdate = true;
+        }
+
+        if (this.data.text) {
+
+            let textSize = this.data.fontSize
+            let moreToWrite = this.data.text
+            let writeNow
+            let yOffset = textSize
+            let numberChars = this.data.width/this.data.fontSize
+            while(moreToWrite){
+                console.log(moreToWrite)
+                writeNow = moreToWrite.slice(0,numberChars)
+                moreToWrite = moreToWrite.slice(numberChars)
+                ctx.font = `${this.data.fontSize}px Courier`
+                ctx.fillStyle = this.data.textColor
+                ctx.fillText(writeNow, textSize, yOffset)
+                yOffset += textSize
+            }
         }
 
         var event = new Event("loaded")
